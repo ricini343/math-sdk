@@ -98,29 +98,30 @@ def generate_base_reels(path, length=100, seed_base=100):
     _write_csv(path, "BR0.csv", reels, length)
 
 
-def generate_freegame_reels(path, length=80, seed_base=500):
+def generate_freegame_reels(path, length=60, seed_base=500):
     """
     Free game reels (FR0):
     - No SC (scatters) — free spins don't need scatter trigger on strips
       (retrigger is checked programmatically or not available)
-    - W (wild) present — 1 per reel on longer strips (lower wild frequency)
+    - W (wild) present — 3 per reel (5% wild freq, expanding sticky)
     - Wilds that land expand to fill the whole reel and become sticky
     """
     reels = []
+    wild_count = 3  # 3 wilds per reel = 5% frequency on 60 symbols
     for i in range(5):
         syms = make_paying_symbols(
-            dragon=3, samurai=4, geisha=5, oni=6,
-            A=7, K=7, Q=8, J=7, ten=7,
-        )  # 54 symbols
+            dragon=2, samurai=3, geisha=4, oni=5,
+            A=6, K=6, Q=6, J=6, ten=6,
+        )  # 44 symbols
 
-        needed = length - len(syms) - 1  # -1 for W
+        needed = length - len(syms) - wild_count
         extras = (["A", "K", "Q", "J", "10"] * 5)[:needed]
         syms += extras
 
         syms = interleave_symbols(syms, seed=seed_base + i * 23)
 
-        # Insert wild
-        syms = insert_symbol(syms, "W", count=1, seed=seed_base + i * 23)
+        # Insert 3 wilds per reel
+        syms = insert_symbol(syms, "W", count=wild_count, seed=seed_base + i * 23)
 
         syms = syms[:length]
         while len(syms) < length:
