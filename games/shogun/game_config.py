@@ -22,7 +22,7 @@ class GameConfig(Config):
         self.working_name = "Shogun"
         self.wincap = 15000.0
         self.win_type = "lines"
-        self.rtp = 0.9600
+        self.rtp = 0.9700
         try:
             self.construct_paths(self.game_id)
         except TypeError:
