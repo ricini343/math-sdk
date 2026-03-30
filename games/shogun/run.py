@@ -33,16 +33,16 @@ from src.write_data.write_configs import generate_configs
 
 if __name__ == "__main__":
 
-    num_threads    = int(os.environ.get("SIM_THREADS", "2"))   # 2 for GitHub CI runners
+    num_threads    = 1   # Single thread to avoid deepcopy overhead
     rust_threads   = 16
     batching_size  = 1000  # smaller batches = safer on low-RAM CI runners
     compression    = True    # Production output
     profiling      = False
 
     num_sim_args = {
-        "base":             int(5e3),
-        "buy_bonus":        int(5e3),
-        "super_buy_bonus":  int(5e3),
+        "base":             1000,
+        "buy_bonus":        1000,
+        "super_buy_bonus":  1000,
     }
 
     run_conditions = {
