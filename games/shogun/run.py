@@ -46,7 +46,7 @@ if __name__ == "__main__":
     }
 
     run_conditions = {
-        "run_sims":          False,
+        "run_sims":          True,
         "run_optimization":  True,
         "run_analysis":      False,
         "run_format_checks": False,  # SDK uses hardcoded 'Games/' path (capital G), incompatible with CI

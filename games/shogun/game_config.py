@@ -20,7 +20,7 @@ class GameConfig(Config):
         self.game_id = "1_1_shogun"
         self.provider_number = 1
         self.working_name = "Shogun"
-        self.wincap = 5000.0
+        self.wincap = 15000.0
         self.win_type = "lines"
         self.rtp = 0.9700
         try:
@@ -170,7 +170,7 @@ class GameConfig(Config):
 
         # ── Bet Modes ─────────────────────────────────────────────
         maxwins = {
-            "base": 5000, "buy_bonus": 5000, "super_buy_bonus": 5000,
+            "base": 15000, "buy_bonus": 15000, "super_buy_bonus": 15000,
         }
 
         self.bet_modes = [
