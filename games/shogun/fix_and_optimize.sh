@@ -41,7 +41,7 @@ config = {
                 {"name": "0", "rtp": "0", "avg_win": "0",
                  "identity_condition": {"search": [], "win_range_start": 0.0, "win_range_end": 0.0, "opposite": False}},
                 {"name": "freegame", "rtp": "0.40", "hr": "50",
-                 "identity_condition": {"search": [{"name": "symbol", "value": "scatter"}], "win_range_start": -1.0, "win_range_end": -1.0, "opposite": False}},
+                 "identity_condition": {"search": [{"name": "kind", "value": "scatter"}], "win_range_start": -1.0, "win_range_end": -1.0, "opposite": False}},
                 {"name": "basegame", "rtp": "0.56", "hr": "3.5",
                  "identity_condition": {"search": [], "win_range_start": -1.0, "win_range_end": -1.0, "opposite": False}},
             ]
