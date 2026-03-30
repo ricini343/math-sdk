@@ -55,37 +55,33 @@ def insert_symbol(symbols, sym_name, count=1, seed=42):
     return symbols
 
 
-def generate_base_reels(path, length=100, seed_base=100):
+def generate_base_reels(path, length=628, seed_base=100):
     """
-    Base game reels (BR0):
-    - All reels can have W (wild) — 1 per reel
-    - Reels 0, 2, 4 have SC (scatter) — 1 per scatter reel
-    - Total per reel: 59 paying + 1 W + (1 SC on 0/2/4 or 1 extra pay on 1/3) = ~61
-    Actually we build to target length.
+    Base game reels (BR0) — matches reference 0_0_expwilds (~628 rows):
+    - 4 W (wild) per reel (~0.64% wild frequency)
+    - 2 SC (scatter) per scatter reel (reels 0, 2, 4)
     """
     reels = []
     scatter_reels = {0, 2, 4}
+    wild_count = 4
 
     for i in range(5):
-        # Start with paying symbols (59 base)
         syms = make_paying_symbols()  # 59 symbols
-        # Add extra low-pays to reach target minus specials
-        specials = 1  # W always
-        if i in scatter_reels:
-            specials += 1  # SC
+        scatter_count = 2 if i in scatter_reels else 0
+        specials = wild_count + scatter_count
         needed = length - len(syms) - specials
-        # Pad with mixed low-pays
-        extras = (["A", "K", "Q", "J", "10"] * 3)[:needed]
+        # Pad with mixed low-pays to fill the strip
+        extras = (["A", "K", "Q", "J", "10"] * (needed // 5 + 2))[:needed]
         syms += extras
 
         syms = interleave_symbols(syms, seed=seed_base + i * 17)
 
-        # Insert wild
-        syms = insert_symbol(syms, "W", count=1, seed=seed_base + i * 17)
+        # Insert wilds
+        syms = insert_symbol(syms, "W", count=wild_count, seed=seed_base + i * 17)
 
-        # Insert scatter on reels 0, 2, 4
+        # Insert scatters on reels 0, 2, 4
         if i in scatter_reels:
-            syms = insert_symbol(syms, "SC", count=1, seed=seed_base + i * 17 + 50)
+            syms = insert_symbol(syms, "SC", count=scatter_count, seed=seed_base + i * 17 + 50)
 
         # Trim or pad to exact length
         syms = syms[:length]
@@ -98,24 +94,23 @@ def generate_base_reels(path, length=100, seed_base=100):
     _write_csv(path, "BR0.csv", reels, length)
 
 
-def generate_freegame_reels(path, length=60, seed_base=500):
+def generate_freegame_reels(path, length=620, seed_base=500):
     """
-    Free game reels (FR0):
-    - No SC (scatters) — free spins don't need scatter trigger on strips
-      (retrigger is checked programmatically or not available)
-    - W (wild) present — 3 per reel (5% wild freq, expanding sticky)
+    Free game reels (FR0) — matches reference 0_0_expwilds (~620 rows):
+    - No SC (scatters)
+    - 3 W (wild) per reel (~0.48% wild freq, ~10% chance per reel per spin)
     - Wilds that land expand to fill the whole reel and become sticky
     """
     reels = []
-    wild_count = 3  # 3 wilds per reel = 5% frequency on 60 symbols
+    wild_count = 3  # 3 wilds per reel on 620 symbols
     for i in range(5):
         syms = make_paying_symbols(
-            dragon=2, samurai=3, geisha=4, oni=5,
-            A=6, K=6, Q=6, J=6, ten=6,
-        )  # 44 symbols
+            dragon=3, samurai=4, geisha=5, oni=6,
+            A=8, K=8, Q=9, J=8, ten=8,
+        )  # 59 symbols
 
         needed = length - len(syms) - wild_count
-        extras = (["A", "K", "Q", "J", "10"] * 5)[:needed]
+        extras = (["A", "K", "Q", "J", "10"] * (needed // 5 + 2))[:needed]
         syms += extras
 
         syms = interleave_symbols(syms, seed=seed_base + i * 23)
