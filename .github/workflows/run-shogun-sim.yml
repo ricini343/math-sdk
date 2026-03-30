@@ -6,7 +6,7 @@ on:
 jobs:
   simulate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -15,44 +15,32 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: |
-          pip install numpy zstandard xlsxwriter matplotlib
+        run: pip install numpy zstandard xlsxwriter matplotlib
 
-      - name: Install SDK
-        run: pip install -e .
+      - name: Run Shogun simulation
+        working-directory: games/shogun
+        run: python3 run.py
 
-      - name: Run Shogun simulation (100k entries, 4 threads)
+      - name: Check RTP
         working-directory: games/shogun
         run: |
           python3 -c "
-          import os, sys
+          import csv, os, sys
           sys.path.insert(0, '.')
-          from gamestate import GameState
           from game_config import GameConfig
-          from src.state.run_sims import create_books
-          from src.write_data.write_configs import generate_configs
-
           config = GameConfig()
-          gamestate = GameState(config)
-
-          num_sim_args = {'base': 100000, 'buy_bonus': 100000, 'super_buy_bonus': 100000}
-          create_books(gamestate, config, num_sim_args, 1000, 4, True, False)
-          generate_configs(gamestate)
-
-          import csv
           for mode in ['base', 'buy_bonus', 'super_buy_bonus']:
               fn = os.path.join(config.lut_path, f'lookUpTable_{mode}_0.csv')
               with open(fn) as f:
                   rows = list(csv.reader(f))
               payouts = [int(r[2]) for r in rows]
               avg = sum(payouts)/len(payouts)
-              print(f'{mode}: avg_payout={avg:.2f} cents, RTP={avg:.2f}%')
+              print(f'{mode}: entries={len(rows)}, avg_payout={avg:.2f}, RTP={avg:.2f}%')
           "
 
       - name: Upload math artifacts
         uses: actions/upload-artifact@v4
         with:
           name: shogun-math
-          path: |
-            games/1_1_shogun/library/publish_files/
+          path: games/1_1_shogun/library/publish_files/
           retention-days: 30
