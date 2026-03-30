@@ -19,10 +19,14 @@ jobs:
 
       - name: Run Shogun simulation
         working-directory: games/shogun
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: python3 run.py
 
       - name: Check RTP
         working-directory: games/shogun
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python3 -c "
           import csv, os, sys
