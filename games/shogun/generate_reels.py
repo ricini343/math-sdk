@@ -55,7 +55,7 @@ def insert_symbol(symbols, sym_name, count=1, seed=42):
     return symbols
 
 
-def generate_base_reels(path, length=200, seed_base=100):
+def generate_base_reels(path, length=100, seed_base=100):
     """
     Base game reels (BR0):
     - All reels can have W (wild) — 1 per reel
@@ -98,7 +98,7 @@ def generate_base_reels(path, length=200, seed_base=100):
     _write_csv(path, "BR0.csv", reels, length)
 
 
-def generate_freegame_reels(path, length=400, seed_base=500):
+def generate_freegame_reels(path, length=80, seed_base=500):
     """
     Free game reels (FR0):
     - No SC (scatters) — free spins don't need scatter trigger on strips
@@ -109,9 +109,9 @@ def generate_freegame_reels(path, length=400, seed_base=500):
     reels = []
     for i in range(5):
         syms = make_paying_symbols(
-            dragon=8, samurai=10, geisha=12, oni=14,
-            A=12, K=12, Q=14, J=14, ten=14,
-        )  # 110 symbols
+            dragon=3, samurai=4, geisha=5, oni=6,
+            A=7, K=7, Q=8, J=7, ten=7,
+        )  # 54 symbols
 
         needed = length - len(syms) - 1  # -1 for W
         extras = (["A", "K", "Q", "J", "10"] * 5)[:needed]
