@@ -33,7 +33,7 @@ from src.write_data.write_configs import generate_configs
 
 if __name__ == "__main__":
 
-    num_threads    = int(os.environ.get("SIM_THREADS", "8"))   # override via env: SIM_THREADS=4
+    num_threads    = int(os.environ.get("SIM_THREADS", "2"))   # 2 for GitHub CI runners
     rust_threads   = 16
     batching_size  = 1000  # smaller batches = safer on low-RAM CI runners
     compression    = True    # Production output
