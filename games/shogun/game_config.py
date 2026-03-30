@@ -23,7 +23,10 @@ class GameConfig(Config):
         self.wincap = 15000.0
         self.win_type = "lines"
         self.rtp = 0.9600
-        self.construct_paths(self.game_id)
+        try:
+            self.construct_paths(self.game_id)
+        except TypeError:
+            self.construct_paths()
 
         # 5×5 grid
         self.num_reels = 5
