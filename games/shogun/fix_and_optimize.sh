@@ -10,24 +10,91 @@ mkdir -p "$DEST_LIB"
 cp -r "$ENV_LIB"/* "$DEST_LIB"/
 echo "Copied library files OK"
 
-echo "=== Step 1b: Add missing bias field to math_config.json ==="
+echo "=== Step 1b: Generate correct math_config.json ==="
 MCFG="$DEST_LIB/configs/math_config.json"
-python3 -c "
-import json
-with open('$MCFG') as f:
-    d = json.load(f)
-if 'bias' not in d:
-    d['bias'] = [
-        {'bet_mode': 'base', 'bias': []},
-        {'bet_mode': 'buy_bonus', 'bias': []},
-        {'bet_mode': 'super_buy_bonus', 'bias': []},
-    ]
-    with open('$MCFG', 'w') as f:
-        json.dump(d, f, indent=2)
-    print('Added bias field OK')
-else:
-    print('bias field already exists')
-"
+python3 << 'PYEOF'
+import json, os
+
+mcfg_path = os.environ.get("MCFG_PATH", "/workspaces/math-sdk/games/1_1_shogun/library/configs/math_config.json")
+os.makedirs(os.path.dirname(mcfg_path), exist_ok=True)
+
+config = {
+    "game_id": "1_1_shogun",
+    "bet_modes": [
+        {"bet_mode": "base", "cost": 1.0, "rtp": 0.97, "max_win": 5000},
+        {"bet_mode": "buy_bonus", "cost": 150.0, "rtp": 0.97, "max_win": 5000},
+        {"bet_mode": "super_buy_bonus", "cost": 300.0, "rtp": 0.97, "max_win": 5000},
+    ],
+    "fences": [
+        {
+            "bet_mode": "base",
+            "fences": [
+                {"name": "wincap", "rtp": "0.01", "avg_win": "5000", "hr": "x",
+                 "identity_condition": {"search": [{"name": "payout_multiplier", "value": "5000"}], "win_range_start": 5000, "win_range_end": 5000, "opposite": False}},
+                {"name": "0", "rtp": "0", "avg_win": "0", "hr": "x",
+                 "identity_condition": {"search": [], "win_range_start": 0, "win_range_end": 0, "opposite": False}},
+                {"name": "freegame", "rtp": "0.40", "hr": "50",
+                 "identity_condition": {"search": [{"name": "symbol", "value": "scatter"}], "win_range_start": 0, "win_range_end": 999999, "opposite": False}},
+                {"name": "basegame", "rtp": "0.56", "hr": "3.5",
+                 "identity_condition": {"search": [], "win_range_start": 0, "win_range_end": 999999, "opposite": False}},
+            ]
+        },
+        {
+            "bet_mode": "buy_bonus",
+            "fences": [
+                {"name": "wincap", "rtp": "0.01", "avg_win": "5000", "hr": "x",
+                 "identity_condition": {"search": [{"name": "payout_multiplier", "value": "5000"}], "win_range_start": 5000, "win_range_end": 5000, "opposite": False}},
+                {"name": "freegame", "rtp": "0.96", "hr": "x",
+                 "identity_condition": {"search": [], "win_range_start": 0, "win_range_end": 999999, "opposite": False}},
+            ]
+        },
+        {
+            "bet_mode": "super_buy_bonus",
+            "fences": [
+                {"name": "wincap", "rtp": "0.01", "avg_win": "5000", "hr": "x",
+                 "identity_condition": {"search": [{"name": "payout_multiplier", "value": "5000"}], "win_range_start": 5000, "win_range_end": 5000, "opposite": False}},
+                {"name": "freegame", "rtp": "0.96", "hr": "x",
+                 "identity_condition": {"search": [], "win_range_start": 0, "win_range_end": 999999, "opposite": False}},
+            ]
+        },
+    ],
+    "dresses": [
+        {
+            "bet_mode": "base",
+            "dresses": [
+                {"fence": "basegame", "scale_factor": "1.2", "identity_condition_win_range": [1, 5], "prob": 1.0},
+                {"fence": "basegame", "scale_factor": "1.5", "identity_condition_win_range": [10, 30], "prob": 1.0},
+                {"fence": "freegame", "scale_factor": "0.8", "identity_condition_win_range": [500, 1000], "prob": 1.0},
+                {"fence": "freegame", "scale_factor": "1.2", "identity_condition_win_range": [2000, 5000], "prob": 1.0},
+            ]
+        },
+        {
+            "bet_mode": "buy_bonus",
+            "dresses": [
+                {"fence": "freegame", "scale_factor": "0.9", "identity_condition_win_range": [10, 50], "prob": 1.0},
+                {"fence": "freegame", "scale_factor": "0.8", "identity_condition_win_range": [500, 2000], "prob": 1.0},
+                {"fence": "freegame", "scale_factor": "1.2", "identity_condition_win_range": [3000, 7000], "prob": 1.0},
+            ]
+        },
+        {
+            "bet_mode": "super_buy_bonus",
+            "dresses": [
+                {"fence": "freegame", "scale_factor": "0.8", "identity_condition_win_range": [100, 500], "prob": 1.0},
+                {"fence": "freegame", "scale_factor": "1.3", "identity_condition_win_range": [5000, 10000], "prob": 1.0},
+            ]
+        },
+    ],
+    "bias": [
+        {"bet_mode": "base", "bias": []},
+        {"bet_mode": "buy_bonus", "bias": []},
+        {"bet_mode": "super_buy_bonus", "bias": []},
+    ],
+}
+
+with open(mcfg_path, "w") as f:
+    json.dump(config, f, indent=2)
+print("Generated math_config.json OK")
+PYEOF
 
 echo "=== Step 2: Source cargo ==="
 . /usr/local/cargo/env
