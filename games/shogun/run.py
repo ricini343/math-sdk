@@ -40,14 +40,14 @@ if __name__ == "__main__":
     profiling      = False
 
     num_sim_args = {
-        "base":             int(1e3),
-        "buy_bonus":        int(1e3),
-        "super_buy_bonus":  int(1e3),
+        "base":             int(1e5),
+        "buy_bonus":        int(1e5),
+        "super_buy_bonus":  int(1e5),
     }
 
     run_conditions = {
         "run_sims":          True,
-        "run_optimization":  False,
+        "run_optimization":  True,
         "run_analysis":      False,
         "run_format_checks": False,  # SDK uses hardcoded 'Games/' path (capital G), incompatible with CI
     }
