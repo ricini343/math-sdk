@@ -33,16 +33,16 @@ from src.write_data.write_configs import generate_configs
 
 if __name__ == "__main__":
 
-    num_threads    = 1   # Single thread to avoid deepcopy overhead
+    num_threads    = 4
     rust_threads   = 16
-    batching_size  = 1000  # smaller batches = safer on low-RAM CI runners
+    batching_size  = 5000
     compression    = True    # Production output
     profiling      = False
 
     num_sim_args = {
-        "base":             1000,
-        "buy_bonus":        1000,
-        "super_buy_bonus":  1000,
+        "base":             100000,
+        "buy_bonus":        100000,
+        "super_buy_bonus":  100000,
     }
 
     run_conditions = {

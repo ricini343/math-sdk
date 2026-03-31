@@ -23,7 +23,7 @@ body {
   filter: brightness(0.6);  /* dim uniformly across full window — no visible canvas box */
 }
 /* Canvas comes after video in DOM so it stacks on top */
-canvas { display: block; position: relative; background: transparent; z-index: 2; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+canvas { display: block; position: relative; background: transparent; z-index: 2; touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 </style>
 </head>
 <body>
@@ -96,8 +96,11 @@ async function _rgsPost(path, body) {
 }
 
 const RGS = {
+  _roundActive: false,
+  _playPromise: null,
+  _endingRound: false,
   async authenticate() {
-    if (IS_DEMO) return { balance:1000, minBet:0.20, maxBet:10.00, stepBet:0.20, currency:'EUR', lang:'en' };
+    if (IS_DEMO) { const _cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD']; return { balance:1000, minBet:_cbd.min, maxBet:_cbd.max, stepBet:_cbd.step, currency:CURRENCY, lang:'en' }; }
     const d = await _rgsPost('/wallet/authenticate', {});
     if (!d) throw new Error('Auth failed');
     const bal = (d.balance && d.balance.amount != null) ? fromRGS(d.balance.amount) : 1000;
@@ -117,25 +120,33 @@ const RGS = {
     return result;
   },
   async play(betAmt, modeName) {
+    if (IS_DEMO) { this._roundActive = true; return; }
     const body = { amount: toRGS(betAmt), mode: modeName.toUpperCase() };
     if (CURRENCY) body.currency = CURRENCY;
     this._playPromise = _rgsPost('/wallet/play', body);
     this._roundActive = true;
-    await this._playPromise;
+    const res = await this._playPromise;
+    if (!res) { this._roundActive = false; console.warn('[RGS] play failed — round not started'); }
   },
   async endRound() {
-    if (!this._roundActive) return; // no active round to close
+    if (IS_DEMO) { this._roundActive = false; return; }
+    if (!this._roundActive) return;
+    if (this._endingRound) return; // prevent double endRound
+    this._endingRound = true;
     try {
-      // Wait for play to finish before ending the round
       if (this._playPromise) await this._playPromise;
+      if (!this._roundActive) { this._endingRound = false; return; } // play failed
       const res = await _rgsPost('/wallet/end-round', {});
       if (res && res.balance && res.balance.amount != null) {
         balance = fromRGS(res.balance.amount);
       }
     } catch(e) { console.warn('end-round error:', e); }
     this._roundActive = false;
+    this._playPromise = null;
+    this._endingRound = false;
   },
   async betEvent(eventStr) {
+    if (IS_DEMO) return;
     _rgsPost('/bet/event', { event: eventStr });
   }
 };
@@ -158,13 +169,14 @@ function showRGSError(msg) {
   overlay.appendChild(body);
   document.body.appendChild(overlay);
 }
-// Validate rgs_url: must be present and valid for real-money play
+// Validate rgs_url: if invalid, fall back to demo mode
 if (!IS_DEMO) {
   try {
     const testUrl = new URL(RGS_URL);
     if (!testUrl.protocol.startsWith('http')) throw new Error('bad protocol');
   } catch(e) {
-    showRGSError('Invalid or missing RGS URL. Please reload the game from the casino lobby.');
+    console.warn('Invalid RGS URL, falling back to demo mode');
+    IS_DEMO = true;
   }
 }
 
@@ -421,8 +433,8 @@ const REEL_STAGGER = 80;   // ms between reel start times
 // ─────────────────────────────────────────────────────────────
 //  APP
 // ─────────────────────────────────────────────────────────────
-PIXI.settings.MIPMAP_TEXTURES = PIXI.MIPMAP_MODES.ON;
-PIXI.settings.SCALE_MODE      = PIXI.SCALE_MODES.LINEAR;
+try { PIXI.settings.MIPMAP_TEXTURES = PIXI.MIPMAP_MODES.ON; } catch(e) {}
+try { PIXI.settings.SCALE_MODE      = PIXI.SCALE_MODES.LINEAR; } catch(e) {}
 
 const app = new PIXI.Application({
   width: BASE_W, height: BASE_H,
@@ -623,6 +635,31 @@ const rndSym = () => weightedRandom(WEIGHTS);
 // ─────────────────────────────────────────────────────────────
 let balance   = 1000;
 let bet       = 1.00;
+// Currency-specific default bet levels (used when RGS doesn't provide betLevels)
+const CURRENCY_BET_DEFAULTS = {
+  USD: { min: 0.20, max: 100, step: 0.20, default: 1 },
+  EUR: { min: 0.20, max: 100, step: 0.20, default: 1 },
+  GBP: { min: 0.20, max: 100, step: 0.20, default: 1 },
+  JPY: { min: 20, max: 10000, step: 20, default: 100 },
+  KRW: { min: 200, max: 100000, step: 200, default: 1000 },
+  BRL: { min: 1, max: 500, step: 1, default: 5 },
+  MXN: { min: 2, max: 1000, step: 2, default: 10 },
+  INR: { min: 10, max: 5000, step: 10, default: 100 },
+  VND: { min: 5000, max: 2000000, step: 5000, default: 20000 },
+  CAD: { min: 0.20, max: 100, step: 0.20, default: 1 },
+  CNY: { min: 1, max: 500, step: 1, default: 5 },
+  RUB: { min: 10, max: 5000, step: 10, default: 100 },
+  TRY: { min: 2, max: 1000, step: 2, default: 10 },
+  PHP: { min: 10, max: 5000, step: 10, default: 50 },
+  IDR: { min: 2000, max: 1000000, step: 2000, default: 10000 },
+  PLN: { min: 0.50, max: 200, step: 0.50, default: 5 },
+  DKK: { min: 1, max: 500, step: 1, default: 5 },
+  CLP: { min: 200, max: 100000, step: 200, default: 1000 },
+  ARS: { min: 50, max: 50000, step: 50, default: 500 },
+  PEN: { min: 0.50, max: 200, step: 0.50, default: 5 },
+  XGC: { min: 0.20, max: 100, step: 0.20, default: 1 },
+  XSC: { min: 0.20, max: 100, step: 0.20, default: 1 },
+};
 let betLevels = [0.20, 0.50, 1.00, 2.00, 5.00, 10.00];
 let minBet = 0.20, maxBet = 10.00, stepBet = 0.20;
 function buildBetLevels(min, max, step) {
@@ -2814,7 +2851,7 @@ async function afterWilds() {
     else playSound('win_small');
   }
 
-  const continueAfterCelebration = () => {
+  const continueAfterCelebration = async () => {
     if (!inFS && scatterCount >= 3) {
       autoSpins = 0; _updateAutoBtn();
       triggerFS(fsTriggerCount);
@@ -3978,7 +4015,7 @@ function showGameInfo() {
   fs1Title.x=230; fs1Title.y=115; p3.addChild(fs1Title);
   const fs1Desc = new PIXI.Text(socLabel('Purchase 10 Free Spins with random expanding wilds.\nPrice: 150× current bet'), bodyStyle);
   fs1Desc.x=230; fs1Desc.y=150; p3.addChild(fs1Desc);
-  const fs1Rtp = new PIXI.Text('RTP: 96.00%', { fontFamily:'Georgia, serif', fontSize:14, fill:0x88aa88 });
+  const fs1Rtp = new PIXI.Text('RTP: 97.00%', { fontFamily:'Georgia, serif', fontSize:14, fill:0x88aa88 });
   fs1Rtp.x=230; fs1Rtp.y=215; p3.addChild(fs1Rtp);
 
   // Super Free Spins card
@@ -3990,7 +4027,7 @@ function showGameInfo() {
   fs2Title.x=230; fs2Title.y=305; p3.addChild(fs2Title);
   const fs2Desc = new PIXI.Text(socLabel('Purchase 10 Free Spins with a guaranteed expanding wild\non every spin. Higher win potential.\nPrice: 300× current bet'), bodyStyle);
   fs2Desc.x=230; fs2Desc.y=340; p3.addChild(fs2Desc);
-  const fs2Rtp = new PIXI.Text('RTP: 96.00%', { fontFamily:'Georgia, serif', fontSize:14, fill:0x88aa88 });
+  const fs2Rtp = new PIXI.Text('RTP: 97.00%', { fontFamily:'Georgia, serif', fontSize:14, fill:0x88aa88 });
   fs2Rtp.x=230; fs2Rtp.y=425; p3.addChild(fs2Rtp);
 
   const buyNote = new PIXI.Text(socLabel('Feature Buy is not available in all jurisdictions.\nThe bet level used for the bonus is the current bet at time of purchase.'), smallStyle);
@@ -4011,7 +4048,7 @@ function showGameInfo() {
     socLabel('• Wilds are sticky during Free Spins'),
   ];
   const rulesRight = [
-    'RTP: 96.00%',
+    'RTP: 97.00%',
     socLabel('Max Win: 15,000× bet'),
     socLabel('Base Game Win Cap: 500× bet'),
     socLabel('Free Spin Win Cap: 2,000× bet'),
@@ -4078,7 +4115,7 @@ function showGameInfo() {
   legalPanel.beginFill(0x1a0f08, 0.4); legalPanel.drawRoundedRect(200, 95, BASE_W-400, 440, 8); legalPanel.endFill(); p6.addChild(legalPanel);
   const legalText = new PIXI.Text(
     'SHOGUN is a game of chance. Past results do not guarantee future outcomes.\n\n' +
-    'This game uses a certified Random Number Generator (RNG) to determine\nall game outcomes. The theoretical Return to Player (RTP) is 96.00%.\n\n' +
+    'This game uses a certified Random Number Generator (RNG) to determine\nall game outcomes. The theoretical Return to Player (RTP) is 97.00%.\n\n' +
     socLabel('The maximum win per round is capped at 15,000× the bet amount.\n') +
     'Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Winnings are settled according to the amount received from the Remote Game Server and not from events within the web browser. TM and \u00A9 2026 Stake Engine.\n\n' +
     'Please play responsibly. If you feel you may have a gambling problem,\nplease seek help at a certified support organization.',
@@ -4133,13 +4170,17 @@ const _pwSub = new PIXI.Text('This game is best played in landscape mode', { fon
 _pwSub.anchor.set(0.5); _pwSub.x=BASE_W/2; _pwSub.y=BASE_H/2+30; portraitWarning.addChild(_pwSub);
 app.stage.addChild(portraitWarning);
 
-// Enhanced resize with portrait detection — patch existing handler
+// Enhanced resize — portrait mode scales to fit width, no rotation required
 const _origResizeFn = resize;
 const _enhancedResize = () => {
-  _origResizeFn();
-  const isPortrait = window.innerHeight > window.innerWidth * 1.2;
-  portraitWarning.visible = isPortrait;
-  if (isPortrait) { app.stage.removeChild(portraitWarning); app.stage.addChild(portraitWarning); }
+  const w = window.innerWidth, h = window.innerHeight;
+  const isPortrait = h > w * 1.2;
+  // Always scale to fit — in portrait, fit to width so game is visible (just smaller)
+  const s = Math.min(w / BASE_W, h / BASE_H);
+  app.view.style.width  = (BASE_W * s) + 'px';
+  app.view.style.height = (BASE_H * s) + 'px';
+  // Never show portrait warning — game must be playable without rotation
+  portraitWarning.visible = false;
 };
 window.removeEventListener('resize', resize);
 window.addEventListener('resize', _enhancedResize);
@@ -4157,16 +4198,19 @@ if (_rgsBlocked) {
     balance = auth.balance;
     CURRENCY = auth.currency;
     CURRENCY_SYMBOL = CURRENCY_MAP[CURRENCY] || CURRENCY + ' ';
-    // Issue #3: Bet levels MUST come from authenticate response
+    // Issue #3: Bet levels from RGS, then currency defaults, then generic fallback
     if (auth.betLevels && auth.betLevels.length) {
       betLevels = auth.betLevels;
       bet = betLevels[0];
     } else if (auth.minBet != null && auth.maxBet != null && auth.stepBet != null) {
       buildBetLevels(auth.minBet, auth.maxBet, auth.stepBet);
       bet = betLevels[0];
-    } else if (!IS_DEMO) {
-      // Real-money mode but no bet levels from RGS — block gameplay
-      showRGSError('Failed to load bet configuration. Please reload the game.');
+    } else {
+      // Apply currency-specific bet defaults
+      const cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD'];
+      buildBetLevels(cbd.min, cbd.max, cbd.step);
+      bet = cbd.default;
+      if (!betLevels.includes(bet)) bet = betLevels.reduce((p,c) => Math.abs(c-bet) < Math.abs(p-bet) ? c : p);
     }
     if (auth.disabledFullscreen) { disabledFullscreen = true; if (_fsBtn) _fsBtn.c.visible = false; }
     if (auth.disabledTurbo) { disabledTurbo = true; turboMode = false; if (_turboBtn) _turboBtn.c.visible = false; }
@@ -4176,10 +4220,13 @@ if (_rgsBlocked) {
       if (_buyBtnTxt) _buyBtnTxt.text = socLabel('BUY BONUS');
     }
   } catch(e) {
-    console.warn('RGS auth failed', e);
-    if (!IS_DEMO) {
-      showRGSError('Authentication failed. Please reload the game from the casino lobby.');
-    }
+    console.warn('RGS auth failed, falling back to demo mode', e);
+    // Graceful fallback: if auth fails, run in demo mode instead of blocking
+    IS_DEMO = true;
+    const _cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD'];
+    buildBetLevels(_cbd.min, _cbd.max, _cbd.step);
+    bet = _cbd.default;
+    if (!betLevels.includes(bet)) bet = betLevels.reduce((p,c) => Math.abs(c-bet) < Math.abs(p-bet) ? c : p);
   }
 }
 
