@@ -23,25 +23,6 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: python3 run.py
 
-      - name: Check RTP
-        working-directory: games/shogun
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-        run: |
-          python3 -c "
-          import csv, os, sys
-          sys.path.insert(0, '.')
-          from game_config import GameConfig
-          config = GameConfig()
-          for mode in ['base', 'buy_bonus', 'super_buy_bonus']:
-              fn = os.path.join(config.lut_path, f'lookUpTable_{mode}_0.csv')
-              with open(fn) as f:
-                  rows = list(csv.reader(f))
-              payouts = [int(r[2]) for r in rows]
-              avg = sum(payouts)/len(payouts)
-              print(f'{mode}: entries={len(rows)}, avg_payout={avg:.2f}, RTP={avg:.2f}%')
-          "
-
       - name: Upload math artifacts
         uses: actions/upload-artifact@v4
         with:
