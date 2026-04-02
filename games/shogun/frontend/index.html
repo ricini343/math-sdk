@@ -47,6 +47,16 @@ let CURRENCY = urlParams.get('currency') || 'EUR';
 let CURRENCY_SYMBOL = '€';
 let IS_DEMO = !RGS_URL;
 
+// ── Replay Mode ──
+const REPLAY_EVENT_ID = urlParams.get('replay') || '';
+const IS_REPLAY = !!REPLAY_EVENT_ID;
+let _replayData = null;   // processed replay round data
+let _replayBet = 0;       // bet amount from replay
+let _replayMode = 'base'; // mode from replay
+let _replayTotalWin = 0;  // total win from replay
+if (IS_REPLAY) { IS_DEMO = true; } // replay doesn't use live RGS wallet
+console.log('[INIT] IS_DEMO:', IS_DEMO, 'RGS_URL:', RGS_URL, 'SESSION_ID:', SESSION_ID, IS_REPLAY ? 'REPLAY:' + REPLAY_EVENT_ID : '');
+
 const CURRENCY_MAP = {
   USD:'$', CAD:'CA$', EUR:'€', GBP:'£', JPY:'¥', CNY:'¥',
   KRW:'₩', BRL:'R$', MXN:'MX$', INR:'₹', RUB:'₽', TRY:'₺',
@@ -67,20 +77,30 @@ let disabledFullscreen = false;
 let disabledTurbo = false;
 let socialCasino = urlParams.get('social') === 'true';
 
-// Social Mode — restricted terms replacement
+// Social Mode — restricted terms replacement (single-pass to avoid cascading)
 function socLabel(text) {
   if (!socialCasino) return text;
-  return text
-    .replace(/\bPAYTABLE\b/gi, 'SYMBOL VALUES')
-    .replace(/\bPAID OUT\b/gi, 'WIN')
-    .replace(/\bPAYS OUT\b/gi, 'WON')
-    .replace(/\bPAY OUT\b/gi, 'WIN')
-    .replace(/\bPAYOUT\b/gi, 'PRIZE')
-    .replace(/\bPAY\b/gi, 'PRIZE')
-    .replace(/\bWIN FEATURE\b/gi, 'PLAY FEATURE')
-    .replace(/\bSTAKE\b/gi, 'PLAY AMOUNT')
-    .replace(/\bCOST\b/gi, 'PRICE')
-    .replace(/\bBET\b/gi, 'PLAY AMOUNT');
+  const map = {
+    'PAYTABLE': 'SYMBOL VALUES',
+    'PAYLINES': 'WINLINES', 'PAYLINE': 'WINLINE',
+    'PAID OUT': 'WIN', 'PAYS OUT': 'WON', 'PAY OUT': 'WIN',
+    'PAYOUT MULTIPLIER': 'FINAL MULTIPLIER',
+    'PAYOUT': 'PRIZE', 'PAY': 'PRIZE',
+    'BUY BONUS': 'PLAY BONUS', 'BUY SUPER': 'PLAY SUPER', 'BUY FREE': 'PLAY FREE',
+    'PURCHASE': 'PLAY', 'BUY': 'PLAY',
+    'WIN FEATURE': 'PLAY FEATURE',
+    'BASE BET': 'BASE PLAY',
+    'COST MULTIPLIER': 'FEATURE MULTIPLIER',
+    'STAKE': 'PLAY AMOUNT',
+    'TOTAL BET COST': 'TOTAL PLAY WORTH',
+    'BET COST': 'PLAY WORTH',
+    'COST': 'WORTH', 'PRICE': 'WORTH',
+    'BET': 'PLAY AMOUNT',
+  };
+  // Build regex: longest phrases first to prevent partial matches
+  const keys = Object.keys(map).sort((a, b) => b.length - a.length);
+  const re = new RegExp('\\b(' + keys.join('|') + ')\\b', 'gi');
+  return text.replace(re, m => map[m.toUpperCase()] || m);
 }
 
 async function _rgsPost(path, body) {
@@ -90,7 +110,13 @@ async function _rgsPost(path, body) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(Object.assign({ sessionID: SESSION_ID }, body))
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      let errBody = '';
+      try { errBody = await resp.text(); } catch(e2){}
+      console.error('[RGS]', path, 'HTTP', resp.status, errBody);
+      // Return structured error so callers can distinguish error types
+      return { _error: true, status: resp.status, body: errBody };
+    }
     return await resp.json();
   } catch(e) { console.warn('[RGS]', path, 'failed:', e); return null; }
 }
@@ -99,10 +125,11 @@ const RGS = {
   _roundActive: false,
   _playPromise: null,
   _endingRound: false,
+  _rgsBoardApplied: false,
   async authenticate() {
     if (IS_DEMO) { const _cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD']; return { balance:1000, minBet:_cbd.min, maxBet:_cbd.max, stepBet:_cbd.step, currency:CURRENCY, lang:'en' }; }
     const d = await _rgsPost('/wallet/authenticate', {});
-    if (!d) throw new Error('Auth failed');
+    if (!d || d._error) throw new Error('Auth failed');
     const bal = (d.balance && d.balance.amount != null) ? fromRGS(d.balance.amount) : 1000;
     const cur = (d.balance && d.balance.currency) ? d.balance.currency : 'USD';
     const cfg = d.config || {};
@@ -117,33 +144,150 @@ const RGS = {
       result.maxBet = fromRGS(cfg.maxBet);
       result.stepBet = fromRGS(cfg.stepBet);
     }
+    if (cfg.defaultBetLevel != null) result.defaultBetLevel = fromRGS(cfg.defaultBetLevel);
+    // Pass round data for active round detection on refresh
+    if (d.round) result.round = d.round;
     return result;
   },
+  _lastPlayRes: null, // store play response to check payoutMultiplier
   async play(betAmt, modeName) {
     if (IS_DEMO) { this._roundActive = true; return; }
-    const body = { amount: toRGS(betAmt), mode: modeName.toUpperCase() };
-    if (CURRENCY) body.currency = CURRENCY;
-    this._playPromise = _rgsPost('/wallet/play', body);
-    this._roundActive = true;
-    const res = await this._playPromise;
-    if (!res) { this._roundActive = false; console.warn('[RGS] play failed — round not started'); }
-  },
-  async endRound() {
-    if (IS_DEMO) { this._roundActive = false; return; }
-    if (!this._roundActive) return;
-    if (this._endingRound) return; // prevent double endRound
-    this._endingRound = true;
-    try {
-      if (this._playPromise) await this._playPromise;
-      if (!this._roundActive) { this._endingRound = false; return; } // play failed
-      const res = await _rgsPost('/wallet/end-round', {});
-      if (res && res.balance && res.balance.amount != null) {
-        balance = fromRGS(res.balance.amount);
+    // Wait for any previous endRound to complete before starting a new round
+    if (this._endRoundPromise) {
+      try { await this._endRoundPromise; } catch(e) {}
+    }
+    this._payoutMultiplier = 0;
+    this._roundHasWin = false;
+    const body = { amount: toRGS(betAmt), mode: modeName.toUpperCase(), currency: CURRENCY };
+    // _playPromise wraps the ENTIRE flow (including retry) as a single promise.
+    // This prevents race conditions: onAllStopped awaiting _playPromise always
+    // gets the FINAL result, never an intermediate failed attempt.
+    this._playPromise = (async () => {
+      let res = await _rgsPost('/wallet/play', body);
+      if (res && res._error) {
+        // Only retry on "active bet" — stale round from crash/reload
+        if (res.status === 400 && res.body && res.body.includes('active')) {
+          console.warn('[RGS] stale round detected, closing and retrying');
+          const cleanup = await _rgsPost('/wallet/end-round', {});
+          if (cleanup && !cleanup._error && cleanup.balance && cleanup.balance.amount != null) {
+            balance = fromRGS(cleanup.balance.amount);
+          }
+          res = await _rgsPost('/wallet/play', body);
+        } else {
+          // Non-recoverable error — don't retry
+          return null;
+        }
       }
-    } catch(e) { console.warn('end-round error:', e); }
-    this._roundActive = false;
-    this._playPromise = null;
-    this._endingRound = false;
+      if (!res) return null; // network failure
+      if (res._error) return null; // retry also failed
+      return res;
+    })();
+    this._roundActive = true;
+    let res = await this._playPromise;
+    this._lastPlayRes = res;
+    if (!res) { this._roundActive = false; this._playPromise = null; _rgsDataReady = true; return; }
+    if (res.balance && res.balance.amount != null) { balance = fromRGS(res.balance.amount); }
+    const payout = res.round && res.round.payoutMultiplier;
+    const roundActive = res.round && res.round.active;
+    if (payout > 0) console.log('[RGS] win:', payout, 'x bet');
+    this._roundHasWin = (roundActive === true);
+    this._payoutMultiplier = payout || 0;
+    // Process ALL RGS state events into spin data (boards, wins, scatters, wilds, FS)
+    // This replaces local book data so scatter triggers, FS, etc. match the RGS outcome
+    this._rgsBoard = null;
+    this._rgsSpins = null;
+    this._rgsMaxPayout = 0;
+    if (res.round && res.round.state && res.round.state.length > 0) {
+      try {
+        const processed = processBookEntry({
+          events: res.round.state,
+          payoutMultiplier: (payout || 0) * 100 // match book format (cents)
+        });
+        this._rgsSpins = processed.spins;
+        this._rgsMaxPayout = processed.totalPayout;
+        console.log('[RGS] processed', this._rgsSpins.length, 'spins from state,',
+          'scatter:', this._rgsSpins[0] && this._rgsSpins[0].scatterTrigger ? 'YES' : 'no',
+          'wilds:', this._rgsSpins[0] && this._rgsSpins[0].wilds ? this._rgsSpins[0].wilds.length : 0);
+        // Extract base game board and apply to reel targets during spin
+        if (this._rgsSpins.length > 0 && this._rgsSpins[0].board) {
+          this._rgsBoard = this._rgsSpins[0].board;
+          // Create display board: strip expanding wilds down to the SINGLE landed wild
+          // Base game reveal = PRE-expansion (1 wild at actual landed row)
+          const displayBoard = this._rgsBoard.map(reel => [...reel]);
+          const spin0 = this._rgsSpins[0];
+          if (spin0.wilds && spin0.wilds.length > 0) {
+            for (const w of spin0.wilds) {
+              // Find the actual wild position on this reel
+              let wildRow = -1;
+              for (let row = 0; row < ROWS; row++) {
+                if (displayBoard[w.reel][row] === WILD) { wildRow = row; break; }
+              }
+              w._landedRow = wildRow >= 0 ? wildRow : 2;
+              // Strip all OTHER wilds (keep only the landed position)
+              for (let row = 0; row < ROWS; row++) {
+                if (row === w._landedRow) continue;
+                if (displayBoard[w.reel][row] === WILD) {
+                  displayBoard[w.reel][row] = weightedRandom(WEIGHTS);
+                }
+              }
+            }
+          }
+          // Update reel targets — reels LAND on stripped board (wilds expand later)
+          for (let r = 0; r < REELS; r++) {
+            reelState[r].targetSyms = displayBoard[r];
+          }
+          lastBoard = displayBoard;
+          // Scatter anticipation from RGS data — includes random teases
+          if (!inFS && !turboMode && spinning && reelState[4] && !reelState[4].stopped) {
+            const sc0 = displayBoard[0] && displayBoard[0].includes(SCATTER);
+            const sc2 = displayBoard[2] && displayBoard[2].includes(SCATTER);
+            const realAnticipation = sc0 && sc2;
+            const teaseAnticipation = !realAnticipation && Math.random() < 0.10;
+            if (realAnticipation || teaseAnticipation) {
+              // Timing relative to NOW (when RGS data arrives), not old reel stopTimes
+              // Reels 0-3 stop quickly (~300ms stagger), then reel 4 gets 3s of anticipation
+              const now = Date.now();
+              for (let ri = 0; ri < 4; ri++) {
+                reelState[ri].stopTime = Math.min(reelState[ri].stopTime, now + ri * 300);
+              }
+              reelState[4].stopTime = now + 1200 + 3000; // 1.2s for reels 0-3, then 3s anticipation
+              setTimeout(() => { if (spinning) startAnticipation(4); }, 1000);
+            }
+          }
+        }
+      } catch(e) { console.warn('[RGS] processBookEntry on state failed:', e); }
+    }
+    _rgsDataReady = true; // ungate reels — they can now stop on correct RGS data
+  },
+  _roundHasWin: false,
+  _payoutMultiplier: 0,
+  _endRoundPromise: null,
+  async endRound() {
+    // endRound — only call /wallet/end-round when the RGS round is active.
+    // The Carrot RGS auto-closes rounds with no win. Only rounds with wins
+    // or FS triggers remain active and need explicit end-round.
+    if (IS_DEMO) { this._roundActive = false; return; }
+    if (this._endingRound) return this._endRoundPromise;
+    this._endingRound = true;
+    this._endRoundPromise = (async () => {
+      try {
+        if (this._playPromise) await this._playPromise;
+        // Only call end-round if the RGS indicated the round is active (has win/FS)
+        if (this._roundHasWin) {
+          const res = await _rgsPost('/wallet/end-round', {});
+          if (res && !res._error && res.balance && res.balance.amount != null) {
+            balance = fromRGS(res.balance.amount);
+          }
+        }
+      } catch(e) { console.warn('end-round error:', e); }
+      this._roundActive = false;
+      this._playPromise = null;
+      this._endingRound = false;
+      this._roundHasWin = false;
+      this._payoutMultiplier = 0;
+      this._endRoundPromise = null;
+    })();
+    return this._endRoundPromise;
   },
   async betEvent(eventStr) {
     if (IS_DEMO) return;
@@ -189,7 +333,7 @@ let _bookReady = false;   // true once at least the base book is loaded
 async function loadBook(mode) {
   if (_books[mode]) return;
   try {
-    const resp = await fetch('book_' + mode + '.json');
+    const resp = await fetch('book_' + mode + '.json?v=' + Date.now());
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     _books[mode] = await resp.json();
     console.log('[BOOK] Loaded', mode, ':', _books[mode].length, 'entries');
@@ -307,7 +451,10 @@ let _simMaxPayout = 0;     // book entry's total payout cap (bet multiplier)
 // ── Session Recovery ──
 function saveGameState() {
   if (IS_DEMO) return;
-  try { localStorage.setItem('shogun_state', JSON.stringify({ inFS, fsLeft, roundWin, wildReels, bet, balance, timestamp:Date.now() })); } catch(e) {}
+  try { localStorage.setItem('shogun_state', JSON.stringify({
+    inFS, fsLeft, roundWin, wildReels, bet, balance, timestamp:Date.now(),
+    simSpins: _simSpins, simSpinIdx: _simSpinIdx, simMaxPayout: _simMaxPayout, simMode: _simMode
+  })); } catch(e) {}
 }
 function loadGameState() {
   try { const s = localStorage.getItem('shogun_state'); if (!s) return null; const st = JSON.parse(s);
@@ -664,7 +811,15 @@ let betLevels = [0.20, 0.50, 1.00, 2.00, 5.00, 10.00];
 let minBet = 0.20, maxBet = 10.00, stepBet = 0.20;
 function buildBetLevels(min, max, step) {
   minBet=min; maxBet=max; stepBet=step;
-  const lvls=[]; for(let v=min; v<=max+0.001; v+=step) lvls.push(Math.round(v*100)/100);
+  let lvls=[]; for(let v=min; v<=max+0.001; v+=step) lvls.push(Math.round(v*100)/100);
+  // Cap at 25 levels — evenly sample if step produces too many
+  if (lvls.length > 25) {
+    const sampled = [lvls[0]];
+    const stride = (lvls.length - 1) / 23;
+    for (let i = 1; i < 23; i++) sampled.push(lvls[Math.round(i * stride)]);
+    sampled.push(lvls[lvls.length - 1]);
+    lvls = [...new Set(sampled)].sort((a,b)=>a-b);
+  }
   if(!lvls.length) lvls.push(min); betLevels=lvls;
   if(!betLevels.includes(bet)) bet=betLevels.reduce((p,c)=>Math.abs(c-bet)<Math.abs(p-bet)?c:p);
 }
@@ -676,6 +831,7 @@ let wildReels = []; // [{reel, mult}]
 let lastBoard = null;
 let _resultDone = false; // guard: prevents onAllStopped firing twice per spin
 let _spinGen    = 0;     // incremented on every startSpin — async callbacks compare against this to detect stale calls
+let _rgsDataReady = true; // gates reel stopping: false while waiting for RGS response in base game
 
 // ── TURBO / AUTO ──
 let turboMode = false;
@@ -1028,6 +1184,8 @@ const SPIN_X  = BASE_W - 175;       // pulled left so +/- fit on screen
 const SPIN_Y  = BAR_Y + 47;         // flush: top of 90px button = BAR_Y+2, no slot overlap
 
 let txtBalance, txtBet, txtWin, txtFS;
+let _betLabel = null;
+let _buyBtnTxt = null;
 
 {
   // ── Bar background — transparent, no separator line ──
@@ -1095,7 +1253,7 @@ let txtBalance, txtBet, txtWin, txtFS;
   // ── RIGHT: BET + [−] [SPIN] [+] ──
   // BET label/value sits left of the minus button
   const BET_X = SPIN_X - 180;
-  const _betLabel = lbl(socLabel('BET'), BET_X, BAR_Y + 18);
+  _betLabel = lbl(socLabel('BET'), BET_X, BAR_Y + 18);
   txtBet = bigVal(formatMoney(1), BET_X, BAR_MID + 10, 0xffffff, 24);
 
   // − left of spin
@@ -1120,6 +1278,7 @@ let txtBalance, txtBet, txtWin, txtFS;
     turboMode = !turboMode; _updateTurboBtn();
   });
   _autoBtn = _makeMiniBtn('AUTO', SPIN_X + 68, BAR_Y + 18, () => {
+    if (inFS) return; // no autoplay during bonus
     if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); _hideAutoPicker(); }
     else _showAutoPicker();
   });
@@ -1134,6 +1293,7 @@ let txtBalance, txtBet, txtWin, txtFS;
 // ─────────────────────────────────────────────────────────────
 //  BUY BONUS — left-side button + modal with 2 options
 // ─────────────────────────────────────────────────────────────
+let _gameInfoOverlay = null;
 let buyBonusOverlay = null;
 const BONUS_COST_NORMAL = 150;  // 150× bet
 const BONUS_COST_SUPER  = 300;  // 300× bet
@@ -1161,7 +1321,7 @@ const BONUS_FS_SUPER    = 10;
   btnSprite.width = btnW; btnSprite.height = btnH;
   buyBtn.addChild(btnSprite);
 
-  const _buyBtnTxt = new PIXI.Text(socLabel('BUY BONUS'), {
+  _buyBtnTxt = new PIXI.Text(socLabel('BUY BONUS'), {
     fontFamily: 'Georgia, serif', fontSize: 24, fontWeight: 'bold',
     fill: [0xfff700, 0xffcc00], fillGradientStops: [0, 1],
     align: 'center', letterSpacing: 4,
@@ -1679,7 +1839,7 @@ function _updateAutoBtn() {
   _autoBtn.bg.lineStyle(1.5, on ? 0xff6600 : 0x8a6030, on ? 1 : 0.7);
   _autoBtn.bg.drawRoundedRect(-24, -14, 48, 28, 6);
   _autoBtn.bg.endFill();
-  const label = autoSpins === -1 ? 'AUTO ∞' : autoSpins > 0 ? 'AUTO ' + autoSpins : 'AUTO';
+  const label = autoSpins === -1 ? 'STOP ∞' : autoSpins > 0 ? 'STOP ' + autoSpins : 'AUTO';
   _autoBtn.t.text = label;
   _autoBtn.t.style.fill = on ? 0xff9944 : 0xd4a017;
 }
@@ -1750,7 +1910,7 @@ function _showAutoConfirm(count) {
   const ct = new PIXI.Text('CONFIRM', { fontFamily:'Georgia', fontSize:11, fontWeight:'bold', fill:0xffcc44 }); ct.anchor.set(0.5); ct.x=40; ct.y=13;
   cb.addChild(cbg,ct);
   cb.on('pointerover',()=>{cbg.tint=0xffdd88;}); cb.on('pointerout',()=>{cbg.tint=0xffffff;});
-  cb.on('pointerdown',()=>{ playSound('button_click'); autoSpins=count===0?-1:count; _updateAutoBtn(); _hideAutoConfirm(); _hideAutoPicker(); if(!spinning)startSpin(); });
+  cb.on('pointerdown',()=>{ if(inFS)return; playSound('button_click'); autoSpins=count===0?-1:count; _updateAutoBtn(); _hideAutoConfirm(); _hideAutoPicker(); if(!spinning)startSpin(); });
   _autoConfirm.addChild(cb);
   // CANCEL
   const xb = new PIXI.Container(); xb.x=140; xb.y=52; xb.interactive=true; xb.cursor='pointer';
@@ -1823,6 +1983,11 @@ app.ticker.add((dt) => {
     }
 
     // ── Fully stopped ──────────────────────────────────────
+    // Gate: don't let reels stop until RGS data has arrived (prevents visual mismatch)
+    if (rs.stopping && rs.velocity === 0 && !_rgsDataReady) {
+      rs.velocity = 8; // keep spinning at low speed until RGS data arrives
+      rs.stopping = false;
+    }
     if (rs.stopping && rs.velocity === 0) {
       snapReel(r);
       rs.spinning = false;
@@ -1879,7 +2044,7 @@ function startSpin() {
   if (spinning) return;
   if (_rgsBlocked) return;
   if (_winCelebrationActive) return;  // block during win celebration
-  if (!inFS && balance < bet) { showToast('INSUFFICIENT BALANCE'); return; }
+  if (!IS_REPLAY && !inFS && balance < bet) { showToast('INSUFFICIENT BALANCE'); return; }
   spinning    = true;
   _resultDone = false;
   _spinGen++;
@@ -1893,42 +2058,83 @@ function startSpin() {
     wildReels = [];
     resetOverlays();
     roundWin  = 0;
-    // Demo mode: debit locally. Real mode: RGS endRound sets authoritative balance.
-    if (IS_DEMO) balance = Math.round((balance - bet) * 100) / 100;
-    if (!_forceBonusSpin) RGS.play(bet, _simMode);
-    _forceBonusSpin = false;
+    if (IS_DEMO && !IS_REPLAY) balance = Math.round((balance - bet) * 100) / 100;
 
-    // Pick a new book entry for this base game round
-    const entry = pickBookEntry(_simMode);
-    if (!entry) { spinning = false; showToast('BOOK NOT LOADED'); return; }
-    _currentEntry = entry;
-    const processed = processBookEntry(entry);
-    _simSpins = processed.spins;
-    _simMaxPayout = processed.totalPayout; // win cap from book entry
-    _simSpinIdx = 0;
+    if (IS_REPLAY) {
+      // ═══ REPLAY MODE: spin data already loaded by startReplayPlayback ═══
+      // Don't pick new book entry or call RGS — just use existing _simSpins
+    } else if (!IS_DEMO) {
+      // ═══ RGS BASE GAME: RGS data is the ONLY source of truth ═══
+      // No local book data used — prevents visual mismatch between book and RGS.
+      _rgsDataReady = false;
+      const wasBuyBonus = _forceBonusSpin; // buy bonus handler already called RGS.play() with correct cost
+      _forceBonusSpin = false;
+      setTimeout(() => { if (!_rgsDataReady) { _rgsDataReady = true; console.warn('[RGS] timeout — ungating reels'); } }, 10000);
+      if (!wasBuyBonus) RGS.play(bet, _simMode); // skip if buy bonus already initiated the round
+      // Generate random placeholder board for reel spinning animation.
+      // RGS.play() callback will overwrite targetSyms with real data before reels stop.
+      lastBoard = [];
+      for (let r = 0; r < REELS; r++) {
+        const col = [];
+        for (let row = 0; row < ROWS; row++) col.push(weightedRandom(WEIGHTS));
+        lastBoard.push(col);
+      }
+      _simSpins = [];  // empty until RGS populates
+      _simSpinIdx = 0;
+      _simMaxPayout = 0;
+    } else {
+      // ═══ DEMO BASE GAME: use local book data ═══
+      if (!_forceBonusSpin) RGS.play(bet, _simMode);
+      _forceBonusSpin = false;
+      const entry = pickBookEntry(_simMode);
+      if (!entry) { spinning = false; showToast('BOOK NOT LOADED'); return; }
+      _currentEntry = entry;
+      const processed = processBookEntry(entry);
+      _simSpins = processed.spins;
+      _simMaxPayout = processed.totalPayout;
+      _simSpinIdx = 0;
+    }
   } else {
-    // Decrement FS counter at spin START so the display is accurate during the spin
+    // ═══ FREE SPINS: increment through existing spin array ═══
     fsLeft--;
     _simSpinIdx++;
+    if (fsLeft < 0 || _simSpinIdx >= _simSpins.length) {
+      spinning = false;
+      endFS();
+      return;
+    }
   }
   updateUI();
 
-  // Get current spin data from book
+  // Get current spin data — in RGS base game, _simSpins is empty here (filled by RGS callback later)
   const spinData = _simSpins[_simSpinIdx];
-  if (!spinData || !spinData.board) { spinning = false; showToast('BOOK DATA ERROR'); return; }
+  if (!IS_DEMO && !inFS) {
+    // RGS mode: don't need spinData yet — reels will spin on random targets.
+    // RGS.play() callback sets real lastBoard, targetSyms, and _simSpins.
+    // onAllStopped() will read the final spinData after RGS data arrives.
+  } else {
+    // Demo/FS: spinData must exist from book
+    if (!spinData || !spinData.board) {
+      spinning = false;
+      if (inFS) { showToast('RECOVERING...'); endFS(); return; }
+      showToast('BOOK DATA ERROR');
+      return;
+    }
+    lastBoard = spinData.board;
+  }
 
-  lastBoard = spinData.board;
-
-  // Fix: book reveal board shows post-expansion state (all 5 rows = wild_tile).
-  // For reels with NEW expanding wilds (not already sticky), replace all wilds
-  // except center row with regular symbols so expansion animation starts from 1 symbol.
-  if (spinData.wilds && spinData.wilds.length > 0) {
+  // Strip expanding wild reels for demo/FS (RGS mode handles this in RGS.play callback)
+  if ((IS_DEMO || inFS) && spinData && spinData.wilds && spinData.wilds.length > 0) {
     for (const w of spinData.wilds) {
       const isSticky = wildReels.some(wr => wr.reel === w.reel);
-      if (isSticky) continue; // overlay already covers this reel
-      const landingRow = 2; // center of 5-row grid
+      if (isSticky) continue;
+      let wildRow = -1;
       for (let row = 0; row < ROWS; row++) {
-        if (row === landingRow) continue;
+        if (lastBoard[w.reel][row] === WILD) { wildRow = row; break; }
+      }
+      w._landedRow = wildRow >= 0 ? wildRow : 2;
+      for (let row = 0; row < ROWS; row++) {
+        if (row === w._landedRow) continue;
         if (lastBoard[w.reel][row] === WILD) {
           lastBoard[w.reel][row] = weightedRandom(inFS ? WEIGHTS_FS : WEIGHTS);
         }
@@ -1962,14 +2168,16 @@ function startSpin() {
     }
   }
 
-  // ── Scatter anticipation from book data ──
-  if (!inFS && !turboMode) {
-    const ant = spinData.anticipation || [];
-    // If anticipation values on reels indicate scatter buildup (ant[4] >= 2 means 2 prior scatters)
+  // Scatter anticipation moved to RGS.play() callback — uses RGS data, not local book
+  // In demo mode, use local book data for anticipation
+  // Scatter anticipation — includes random teases (demo mode)
+  if (IS_DEMO && !inFS && !turboMode && !reelState[4].stopped) {
     const sc0 = lastBoard[0].includes(SCATTER);
     const sc2 = lastBoard[2].includes(SCATTER);
-    if (sc0 && sc2 && !reelState[4].stopped) {
-      reelState[4].stopTime += 2400;
+    const realAnticipation = sc0 && sc2;
+    const teaseAnticipation = !realAnticipation && Math.random() < 0.10;
+    if (realAnticipation || teaseAnticipation) {
+      reelState[4].stopTime = Math.max(reelState[4].stopTime, reelState[2].stopTime + 3500);
       const glowDelay = reelState[2].stopTime - Date.now() + 400;
       setTimeout(() => { if (spinning) startAnticipation(4); }, Math.max(glowDelay, 0));
     }
@@ -2074,6 +2282,13 @@ function animateScatterPop(cb) {
     for (let row = 0; row < ROWS; row++)
       if (lastBoard[r][row] === SCATTER)
         scatters.push({ r, row });
+
+  // Guard: if no scatter symbols on board (data mismatch), don't hang — call cb immediately
+  if (scatters.length === 0) {
+    console.warn('[SCATTER] scatterTrigger fired but no scatter symbols on board — skipping animation');
+    cb();
+    return;
+  }
 
   const scatterTex = T(SCATTER);
   const cleanup    = [];
@@ -2219,18 +2434,44 @@ function animateScatterPop(cb) {
 }
 
 
-function onAllStopped() {
-  // Get current spin's book data
+async function onAllStopped() {
+  // ── RGS mode: await play response and sync data BEFORE any decisions ──
+  if (!IS_DEMO && RGS._playPromise) {
+    try {
+      await RGS._playPromise;
+      if (RGS._rgsSpins && RGS._rgsSpins.length > 0) {
+        _simSpins = RGS._rgsSpins;
+        _simMaxPayout = RGS._rgsMaxPayout;
+        if (!inFS) _simSpinIdx = 0;
+        console.log('[RGS] synced', _simSpins.length, 'spins in onAllStopped');
+        // Board and reel targets already set by RGS.play() callback (stripped wilds).
+        // Do NOT re-snap here — that would overwrite with the raw post-expansion board.
+      }
+    } catch(e) {
+      console.error('[RGS] failed to sync data in onAllStopped:', e);
+    }
+  }
+
+  // spinData is now authoritative (RGS data in real mode, book data in demo/FS)
   const spinData = _simSpins[_simSpinIdx];
 
-  // Check for scatter trigger from book data
+  // Guard: if no spin data (RGS failed or timed out), end the spin gracefully
+  if (!spinData) {
+    console.warn('[SPIN] No spin data in onAllStopped, ending spin');
+    spinning = false;
+    if (inFS) { endFS(); } else { await RGS.endRound().catch(()=>{}); }
+    updateUI();
+    return;
+  }
+
+  // Check for scatter trigger
   const hasScatterTrigger = spinData && spinData.scatterTrigger;
   let scatterCount = 0;
   if (hasScatterTrigger) {
     scatterCount = spinData.scatterTrigger.positions.length;
   }
 
-  // Scatter landing animation: scan board for ANY scatter symbols (not just 3+ trigger)
+  // Scatter landing animation: scan board for ANY scatter symbols
   if (!inFS) {
     let hasScattersOnBoard = false;
     for (let r = 0; r < REELS; r++) {
@@ -2242,6 +2483,7 @@ function onAllStopped() {
     if (hasScattersOnBoard) pulseScatterCells();
   }
 
+  // Scatter pop animation — trigger for both demo and RGS when 3+ scatters
   if (!inFS && scatterCount >= 3) {
     animateScatterPop(() => {
       afterWilds();
@@ -2249,14 +2491,22 @@ function onAllStopped() {
     return;
   }
 
-  // Use book expandingWild events for wild expansion instead of local detection
+  // Wild expansion from spin data (now consistent for both modes)
   const newWilds = [];
   if (spinData && spinData.wilds && spinData.wilds.length > 0) {
     for (const w of spinData.wilds) {
       const isAlreadyWild = wildReels.some(wr => wr.reel === w.reel);
       if (isAlreadyWild) continue;
-      // New wild: board was pre-fixed in startSpin (only 1 wild at center row)
-      newWilds.push({ reel: w.reel, row: 2, mult: w.mult });
+      // Use actual landed row from stripping phase, or find it on the board
+      let landedRow = w._landedRow;
+      if (landedRow == null) {
+        landedRow = -1;
+        for (let row = 0; row < ROWS; row++) {
+          if (lastBoard[w.reel][row] === WILD) { landedRow = row; break; }
+        }
+        if (landedRow < 0) landedRow = 2; // fallback: center
+      }
+      newWilds.push({ reel: w.reel, row: landedRow, mult: w.mult });
     }
   }
 
@@ -2277,6 +2527,55 @@ function onAllStopped() {
 // ─────────────────────────────────────────────────────────────
 //  WIN CALCULATION  (left-to-right payline scan, Zeus-style)
 // ─────────────────────────────────────────────────────────────
+
+// Real payline scanner — evaluates the ACTUAL board against PAYLINES + PAYTABLE
+// Used in RGS mode where local book data doesn't match the displayed board
+function scanPaylines(board) {
+  lastWinLines = [];
+  let total = 0;
+
+  for (let i = 0; i < PAYLINES.length; i++) {
+    const line = PAYLINES[i];
+
+    // Determine base symbol (first non-wild on the line from left)
+    let baseSym = null;
+    for (let c = 0; c < REELS; c++) {
+      const s = board[c][line[c]];
+      if (s !== WILD && s !== SCATTER) {
+        baseSym = s;
+        break;
+      }
+    }
+    // All wilds from left — treat as best paying symbol (dragon)
+    if (!baseSym) baseSym = 'dragon';
+
+    if (!PAYTABLE[baseSym]) continue;
+
+    // Count consecutive matching symbols from left (wild substitutes)
+    let count = 0;
+    for (let c = 0; c < REELS; c++) {
+      const s = board[c][line[c]];
+      if (s === baseSym || s === WILD) {
+        count++;
+      } else {
+        break;
+      }
+    }
+
+    if (count >= 3) {
+      const payIdx = count - 3; // 0=3oak, 1=4oak, 2=5oak
+      const pay = PAYTABLE[baseSym][payIdx];
+      if (pay > 0) {
+        const lineWin = Math.round(pay * bet * 100) / 100;
+        total += lineWin;
+        lastWinLines.push({ line, count, base: baseSym, win: lineWin });
+      }
+    }
+  }
+
+  return Math.round(total * 100) / 100;
+}
+
 function calculateWins(board) {
   // Book-driven: wins come from the book entry, not local calculation
   const spinData = _simSpins[_simSpinIdx];
@@ -2763,8 +3062,7 @@ function showWinLines() {
       const lastC = w.count - 1;
       const lx = GRID_X + lastC * CELL + SYM_SIZE + 12;
       const ly = GRID_Y + w.line[lastC] * CELL + SYM_SIZE / 2;
-      const winStr = w.win >= 1 ? w.win.toFixed(2) : w.win.toFixed(2);
-      const label = new PIXI.Text(CURRENCY_SYMBOL + winStr, {
+      const label = new PIXI.Text(formatMoney(w.win), {
         fontFamily: 'Arial Black, Arial, sans-serif',
         fontSize: 22,
         fontWeight: 'bold',
@@ -2808,28 +3106,43 @@ function showWinLines() {
 
 async function afterWilds() {
   // All post-spin animations (wild expansion, scatter pop) are complete.
-  spinning = false;
+  // DON'T set spinning=false yet — wait until endRound completes.
+  // Setting it early lets users click spin before the round is closed (400 errors).
+  lastWinLines = []; // clear stale paylines from previous spin
 
-  // Get book spin data for this spin
+  // RGS data was already synced in onAllStopped (await + replace + snap).
+  // No duplicate replacement needed here.
+
+  // After wild expansion, update lastBoard to reflect the expanded state.
+  // Wins are calculated against the post-expansion board (all rows wild on expanded reels),
+  // so lastBoard must match — otherwise payline highlights show wrong symbols.
+  if (wildReels.length > 0) {
+    for (const wr of wildReels) {
+      for (let row = 0; row < ROWS; row++) {
+        lastBoard[wr.reel][row] = WILD;
+      }
+    }
+  }
+
+  // Get spin data (now correct for both RGS and demo/FS)
   const spinData = _simSpins[_simSpinIdx];
 
-  // Award spin wins from book data (display only — balance comes from RGS endRound)
+  // Win calculation — uses spinData from RGS in real mode, local book in demo/FS
   let spinWin = calculateWins(lastBoard);
+
   if (spinWin > 0) {
     roundWin = Math.round((roundWin + spinWin) * 100) / 100;
-    // Enforce win cap from book entry (individual winInfo events may sum above the capped total)
     const maxWin = Math.round(_simMaxPayout * bet * 100) / 100;
     if (maxWin > 0 && roundWin > maxWin) {
       spinWin = Math.round((spinWin - (roundWin - maxWin)) * 100) / 100;
       if (spinWin < 0) spinWin = 0;
       roundWin = maxWin;
     }
-    // Demo mode: add wins locally. Real mode: RGS endRound sets authoritative balance.
     if (IS_DEMO && spinWin > 0) balance = Math.round((balance + spinWin) * 100) / 100;
   }
   showWinLines();
 
-  // Update sticky wilds from book data (stickyWilds mult is the permanent multiplier)
+  // Update sticky wilds from spin data (works for both RGS and demo now)
   if (spinData && spinData.stickyWilds) {
     wildReels = spinData.stickyWilds.map(w => ({ reel: w.reel, mult: w.mult }));
   }
@@ -2837,10 +3150,25 @@ async function afterWilds() {
   updateUI();
   if (inFS) saveGameState();
 
-  // Check scatter trigger from book data
+  // Check scatter trigger from spin data (now uses RGS data in real mode!)
   const hasScatterTrigger = spinData && spinData.scatterTrigger;
-  const scatterCount = hasScatterTrigger ? spinData.scatterTrigger.positions.length : 0;
-  const fsTriggerCount = hasScatterTrigger ? spinData.scatterTrigger.totalFs : 0;
+  let scatterCount = hasScatterTrigger ? spinData.scatterTrigger.positions.length : 0;
+  let fsTriggerCount = hasScatterTrigger ? spinData.scatterTrigger.totalFs : 0;
+
+  // Fallback: if RGS says round is active but no scatterTrigger event, count scatters on board
+  if (!IS_DEMO && !inFS && scatterCount < 3 && RGS._roundHasWin) {
+    let boardScatters = 0;
+    for (let r = 0; r < REELS; r++) {
+      for (let row = 0; row < ROWS; row++) {
+        if (lastBoard[r][row] === SCATTER) boardScatters++;
+      }
+    }
+    if (boardScatters >= 3) {
+      console.log('[RGS] fallback scatter detection:', boardScatters, 'scatters on board');
+      scatterCount = boardScatters;
+      fsTriggerCount = 10; // default: 3 scatters = 10 FS
+    }
+  }
 
   const tier = (!inFS && spinWin > 0) ? getWinTier(spinWin) : null;
 
@@ -2851,7 +3179,19 @@ async function afterWilds() {
     else playSound('win_small');
   }
 
+  // Close base game round IMMEDIATELY before any celebration animation.
+  // This prevents 400 "player has active bet" errors if user clicks spin
+  // during a small win flash (which doesn't set _winCelebrationActive).
+  // Skip for: FS trigger (round stays active for free spins), FS mode, demo.
+  if (!IS_DEMO && !inFS && scatterCount < 3) {
+    await RGS.endRound();
+    updateUI();
+  }
+  // NOW it's safe to allow new spins — round is closed
+  spinning = false;
+
   const continueAfterCelebration = async () => {
+    // continueAfterCelebration
     if (!inFS && scatterCount >= 3) {
       autoSpins = 0; _updateAutoBtn();
       triggerFS(fsTriggerCount);
@@ -2867,9 +3207,17 @@ async function afterWilds() {
         setTimeout(() => { if (_spinGen === fsGen && !spinning) startSpin(); }, turboMode ? 100 : 1200);
       }
     } else {
-      // Base game end-round — RGS sets authoritative balance
-      await RGS.endRound().catch(e=>console.warn('end-round failed',e));
+      // Base game — round already closed above, just handle UI + auto-spins
+      updateUI();
       clearGameState();
+      // Replay mode: show outro after base game spin completes
+      if (IS_REPLAY) {
+        showReplayOutro(roundWin, () => {
+          roundWin = 0; wildReels = []; resetOverlays();
+          showReplayIntro(_replayData, () => startReplayPlayback());
+        });
+        return;
+      }
       if (autoSpins !== 0) {
         if (autoSpins > 0) { autoSpins--; _updateAutoBtn(); }
         if (autoSpins === 0) {
@@ -2886,9 +3234,60 @@ async function afterWilds() {
     showFSWinFlash(spinWin, continueAfterCelebration);
   } else if (tier) {
     showWinCelebration(spinWin, continueAfterCelebration);
+  } else if (spinWin > 0 && !inFS) {
+    // Small base game win — brief win flash with amount pop-up
+    showSmallWinFlash(spinWin, continueAfterCelebration);
   } else {
     continueAfterCelebration();
   }
+}
+
+// Brief win amount flash for small base game wins (below big-win tier)
+function showSmallWinFlash(winAmount, onComplete) {
+  spinning = true; // block new spins during flash animation
+  const winText = new PIXI.Text(formatMoney(winAmount), {
+    fontFamily: 'Georgia, serif', fontSize: 48, fontWeight: 'bold',
+    fill: [0xffd700, 0xffaa00],
+    fillGradientStops: [0, 1],
+    stroke: 0x000000, strokeThickness: 5,
+    dropShadow: true, dropShadowColor: 0x000000, dropShadowBlur: 8, dropShadowDistance: 2,
+  });
+  winText.anchor.set(0.5);
+  winText.x = BASE_W / 2;
+  winText.y = BASE_H / 2;
+  winText.scale.set(0.3);
+  winText.alpha = 0;
+  app.stage.addChild(winText);
+
+  let t = 0;
+  const duration = turboMode ? 40 : 70;
+  const fn = (dt) => {
+    t += dt;
+    const p = t / duration;
+    if (p < 0.2) {
+      // Pop in
+      const ep = p / 0.2;
+      winText.scale.set(0.3 + 0.9 * ep);
+      winText.alpha = ep;
+    } else if (p < 0.7) {
+      // Hold
+      winText.scale.set(1.2);
+      winText.alpha = 1;
+    } else {
+      // Fade out + float up
+      const fp = (p - 0.7) / 0.3;
+      winText.alpha = 1 - fp;
+      winText.y = BASE_H / 2 - 30 * fp;
+    }
+    if (t >= duration) {
+      app.ticker.remove(fn);
+      if (winText.parent) winText.parent.removeChild(winText);
+      winText.destroy();
+      spinning = false;
+      onComplete();
+    }
+  };
+  app.ticker.add(fn);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -3390,13 +3789,28 @@ function triggerFS(count) {
 
 async function endFS() {
   const totalWin = roundWin;
-  inFS = false; wildReels = [];
+  inFS = false;
   _simMode = 'base'; // reset to base mode after FS
-  resetOverlays();
+  // Keep wildReels and overlays visible until next spin starts.
+  // startSpin() already clears them: wildReels=[]; resetOverlays();
   clearGameState();
   stopSound('free_spins_music');
   if (totalWin > 0) playSound('total_win');
-  await RGS.endRound().catch(e=>console.warn('end-round failed',e));
+  if (!IS_REPLAY) await RGS.endRound().catch(e=>console.warn('end-round failed',e));
+
+  // Replay mode: show replay outro instead of normal FS outro
+  if (IS_REPLAY) {
+    const fsTier = totalWin > 0 ? getWinTier(totalWin) : null;
+    const showOutro = () => {
+      showReplayOutro(totalWin, () => {
+        // "Replay Again" — restart the same replay
+        roundWin = 0; wildReels = []; resetOverlays();
+        showReplayIntro(_replayData, () => startReplayPlayback());
+      });
+    };
+    if (fsTier) { showWinCelebration(totalWin, showOutro); } else { showOutro(); }
+    return;
+  }
 
   // Show win celebration for total FS win, then the outro screen
   const fsTier = totalWin > 0 ? getWinTier(totalWin) : null;
@@ -3536,6 +3950,175 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb) {
     activeOverlay = null;
     if (cb) cb();
   });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  REPLAY MODE — Playback of historical rounds
+// ─────────────────────────────────────────────────────────────
+async function fetchReplayData() {
+  if (!REPLAY_EVENT_ID || !RGS_URL) return null;
+  try {
+    const resp = await fetch(RGS_URL + '/wallet/replay', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionID: SESSION_ID, eventID: REPLAY_EVENT_ID })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (!data.round || !data.round.state) throw new Error('No round data');
+    const modeName = (data.round.mode || 'BASE').toLowerCase();
+    const betAmt = data.round.bet != null ? fromRGS(data.round.bet) : bet;
+    const payout = data.round.payoutMultiplier || 0;
+    const processed = processBookEntry({ events: data.round.state, payoutMultiplier: payout * 100 });
+    return { spins: processed.spins, totalPayout: processed.totalPayout,
+             mode: modeName, bet: betAmt, totalWin: processed.totalPayout * betAmt,
+             payoutMultiplier: payout };
+  } catch(e) {
+    console.error('[REPLAY] Failed to fetch:', e);
+    return null;
+  }
+}
+
+function showReplayIntro(data, cb) {
+  const modeLabel = data.mode === 'buy_bonus' ? socLabel('BUY BONUS') :
+                    data.mode === 'super_buy_bonus' ? socLabel('BUY SUPER BONUS') : 'BASE GAME';
+  const costMult = data.mode === 'buy_bonus' ? '150x' : data.mode === 'super_buy_bonus' ? '300x' : '1x';
+
+  if (activeOverlay) {
+    if (activeOverlay._dim) app.stage.removeChild(activeOverlay._dim);
+    app.stage.removeChild(activeOverlay);
+    document.getElementById('screenDim').style.display = 'none';
+    activeOverlay = null;
+  }
+
+  document.getElementById('screenDim').style.display = 'block';
+  const dim = new PIXI.Graphics();
+  dim.beginFill(0x0a0a2e, 0.96);
+  dim.drawRect(-500, -500, BASE_W + 1000, BASE_H + 1000);
+  dim.endFill();
+  app.stage.addChild(dim);
+
+  const c = new PIXI.Container();
+  activeOverlay = c;
+  c._dim = dim;
+
+  // REPLAY badge
+  const badge = new PIXI.Graphics();
+  badge.beginFill(0x22aa44);
+  badge.drawRoundedRect(-60, -18, 120, 36, 8);
+  badge.endFill();
+  badge.x = BASE_W / 2; badge.y = BASE_H / 2 - 240;
+  c.addChild(badge);
+  const badgeTxt = new PIXI.Text('REPLAY', { fontFamily:'Arial', fontSize:18, fontWeight:'bold', fill:0xffffff, letterSpacing:3 });
+  badgeTxt.anchor.set(0.5); badgeTxt.x = BASE_W / 2; badgeTxt.y = BASE_H / 2 - 240;
+  c.addChild(badgeTxt);
+
+  // Title
+  const title = new PIXI.Text('ROUND REPLAY', {
+    fontFamily:'Georgia, serif', fontSize:48, fontWeight:'bold',
+    fill:[0xfff4d0, 0xd4a017], stroke:0x1a0a00, strokeThickness:4,
+    letterSpacing:4
+  });
+  title.anchor.set(0.5); title.x = BASE_W / 2; title.y = BASE_H / 2 - 180;
+  c.addChild(title);
+
+  // Info rows
+  const infoStyle = { fontFamily:'Georgia, serif', fontSize:18, fill:0xaaaaaa };
+  const valStyle = { fontFamily:'Georgia, serif', fontSize:22, fontWeight:'bold', fill:0xffffff };
+  const rows = [
+    ['Mode', modeLabel],
+    [socLabel('Base Bet'), formatMoney(data.bet)],
+    [socLabel('Feature Multiplier'), costMult],
+    [socLabel('Total Play Cost'), formatMoney(data.mode.includes('buy') ? data.bet * (data.mode === 'super_buy_bonus' ? 300 : 150) : data.bet)],
+    [socLabel('Final Multiplier'), data.payoutMultiplier.toFixed(2) + 'x'],
+    ['Total Win', formatMoney(data.totalWin)],
+  ];
+  rows.forEach(([label, value], i) => {
+    const ly = BASE_H / 2 - 110 + i * 48;
+    const lT = new PIXI.Text(label, infoStyle);
+    lT.x = BASE_W / 2 - 180; lT.y = ly; c.addChild(lT);
+    const vT = new PIXI.Text(value, valStyle);
+    vT.x = BASE_W / 2 + 100; vT.y = ly; c.addChild(vT);
+  });
+
+  // "Start Replay" button
+  const btn = new PIXI.Graphics();
+  btn.beginFill(0x22aa44);
+  btn.drawRoundedRect(-110, -26, 220, 52, 12);
+  btn.endFill();
+  btn.x = BASE_W / 2; btn.y = BASE_H / 2 + 210;
+  btn.interactive = true; btn.cursor = 'pointer';
+  c.addChild(btn);
+  const btnTxt = new PIXI.Text('START REPLAY', { fontFamily:'Arial', fontSize:20, fontWeight:'bold', fill:0xffffff, letterSpacing:2 });
+  btnTxt.anchor.set(0.5); btnTxt.x = BASE_W / 2; btnTxt.y = BASE_H / 2 + 210;
+  c.addChild(btnTxt);
+
+  // Pulse button
+  let pt = 0;
+  const pulseFn = (dt) => { pt += dt; btn.alpha = 0.8 + Math.sin(pt * 0.1) * 0.2; };
+  app.ticker.add(pulseFn);
+
+  app.stage.addChild(c);
+  c.alpha = 0; c.scale.set(0.92);
+  let ticks = 0;
+  const inFn = (dt) => {
+    ticks += dt;
+    c.alpha = Math.min(ticks / 15, 1);
+    c.scale.set(0.92 + Math.min(ticks / 15, 1) * 0.08);
+    if (ticks >= 15) app.ticker.remove(inFn);
+  };
+  app.ticker.add(inFn);
+
+  c.interactive = true;
+  c.hitArea = new PIXI.Rectangle(0, 0, BASE_W, BASE_H);
+  btn.on('pointerdown', () => {
+    app.ticker.remove(inFn);
+    app.ticker.remove(pulseFn);
+    app.stage.removeChild(c);
+    if (c._dim) { app.stage.removeChild(c._dim); c._dim.destroy(); }
+    c.destroy({ children: true });
+    document.getElementById('screenDim').style.display = 'none';
+    activeOverlay = null;
+    if (cb) cb();
+  });
+}
+
+function showReplayOutro(totalWin, cb) {
+  _makeFSScreen(
+    'REPLAY COMPLETE',
+    [
+      { text: 'TOTAL WIN',   size: 22, color: 0xffd700, yo: -38, spacing: 4 },
+      { text: totalWin > 0 ? formatMoney(totalWin) : '—', size: 66, color: 0xffffff, yo: 10 },
+    ],
+    'CLICK TO REPLAY AGAIN',
+    cb
+  );
+}
+
+function startReplayPlayback() {
+  if (!_replayData) return;
+  // Load replay spin data
+  _simSpins = _replayData.spins;
+  _simSpinIdx = 0;
+  _simMaxPayout = _replayData.totalPayout;
+  bet = _replayData.bet;
+  _simMode = _replayData.mode;
+  roundWin = 0;
+  wildReels = [];
+  resetOverlays();
+
+  // Check if first spin triggers FS
+  const spin0 = _simSpins[0];
+  if (spin0 && spin0.scatterTrigger) {
+    // Set up boards for base spin, then trigger FS after
+    lastBoard = spin0.board ? spin0.board.map(r => [...r]) : lastBoard;
+    for (let r = 0; r < REELS; r++) {
+      reelState[r].targetSyms = lastBoard[r];
+    }
+  }
+
+  updateUI();
+  // Start the first spin
+  startSpin();
 }
 
 function showFSIntro(count, cb) {
@@ -3914,22 +4497,22 @@ function showGameInfo() {
 
   const sTitle = new PIXI.Text('SCATTER', subTitleStyle);
   sTitle.x=430; sTitle.y=350; p2.addChild(sTitle);
-  const sDesc = new PIXI.Text('Appears on reels 1, 3, and 5 only. Landing 3 or more Scatter\nsymbols triggers 10 Free Spins. During Free Spins, all wild\nsymbols are sticky and persist for the remaining spins.', bodyStyle);
+  const sDesc = new PIXI.Text(socLabel('Appears on reels 1, 3, and 5 only. Landing 3 or more Scatter\nsymbols triggers 10 Free Spins. During Free Spins, all wild\nsymbols are sticky and persist for the remaining spins.'), bodyStyle);
   sDesc.x=430; sDesc.y=385; p2.addChild(sDesc);
 
   // Retrigger info (Issue #6)
-  const retrNote = new PIXI.Text('RETRIGGER: Free Spins cannot be retriggered.\nThe bonus round awards a fixed 10 Free Spins.', { fontFamily:'Georgia, serif', fontSize:14, fill:0xff8844, fontWeight:'bold' });
+  const retrNote = new PIXI.Text(socLabel('RETRIGGER: Free Spins cannot be retriggered.\nThe bonus round awards a fixed 10 Free Spins.'), { fontFamily:'Georgia, serif', fontSize:14, fill:0xff8844, fontWeight:'bold' });
   retrNote.x=430; retrNote.y=455; p2.addChild(retrNote);
 
   // Free spins note
-  const fsNote = new PIXI.Text('During Free Spins, wild multipliers from multiple reels\nmultiply together for massive combined multipliers.', { fontFamily:'Georgia, serif', fontSize:14, fill:0xd4a017, fontStyle:'italic' });
+  const fsNote = new PIXI.Text(socLabel('During Free Spins, wild multipliers from multiple reels\nmultiply together for massive combined multipliers.'), { fontFamily:'Georgia, serif', fontSize:14, fill:0xd4a017, fontStyle:'italic' });
   fsNote.x=430; fsNote.y=495; p2.addChild(fsNote);
   pages.push(p2);
 
   // ── Page 2b: Paylines (Issue #5) ──
   const pPL = new PIXI.Container();
   makeTitle(pPL, 'PAYLINES');
-  const plNote = new PIXI.Text('20 paylines — wins pay left to right on adjacent reels', { fontFamily:'Georgia, serif', fontSize:15, fill:0xaaaaaa });
+  const plNote = new PIXI.Text(socLabel('20 paylines — wins pay left to right on adjacent reels'), { fontFamily:'Georgia, serif', fontSize:15, fill:0xaaaaaa });
   plNote.anchor.set(0.5); plNote.x = BASE_W/2; plNote.y = 78; pPL.addChild(plNote);
 
   // Draw 20 paylines in a 4x5 grid of mini 5x5 diagrams
@@ -4043,9 +4626,6 @@ function showGameInfo() {
     socLabel('• All wins pay left to right on adjacent reels'),
     socLabel('• Wins = line value × bet × wild multiplier'),
     socLabel('• Wild multipliers from multiple reels multiply together'),
-    socLabel('• 3+ Scatters trigger 10 Free Spins'),
-    socLabel('• Free Spins cannot be retriggered'),
-    socLabel('• Wilds are sticky during Free Spins'),
   ];
   const rulesRight = [
     'RTP: 97.00%',
@@ -4054,6 +4634,32 @@ function showGameInfo() {
     socLabel('Free Spin Win Cap: 2,000× bet'),
     socLabel('Total Round Cap: 15,000× bet'),
   ];
+
+  // Base Mode section
+  const bmPanel = new PIXI.Graphics();
+  bmPanel.beginFill(0x1a0f08, 0.4); bmPanel.drawRoundedRect(120, 290, 650, 90, 8); bmPanel.endFill(); p4.addChild(bmPanel);
+  const bmTitle = new PIXI.Text('BASE MODE', { fontFamily:'Georgia, serif', fontSize:16, fontWeight:'bold', fill:0xd4a017 });
+  bmTitle.x=140; bmTitle.y=300; p4.addChild(bmTitle);
+  const bmRules = [
+    socLabel('• Landing 3+ Scatter symbols (reels 1, 3, 5) triggers 10 Free Spins'),
+    socLabel('• Wild symbols can appear on any reel and expand to fill the entire reel'),
+  ];
+  bmRules.forEach((r, i) => {
+    const t = new PIXI.Text(r, bodyStyle); t.x=140; t.y=325+i*25; p4.addChild(t);
+  });
+
+  // Free Spins section
+  const fsPanel = new PIXI.Graphics();
+  fsPanel.beginFill(0x1a0f08, 0.4); fsPanel.drawRoundedRect(800, 290, 500, 90, 8); fsPanel.endFill(); p4.addChild(fsPanel);
+  const fsTitle = new PIXI.Text('FREE SPINS', { fontFamily:'Georgia, serif', fontSize:16, fontWeight:'bold', fill:0xd4a017 });
+  fsTitle.x=820; fsTitle.y=300; p4.addChild(fsTitle);
+  const fsRules = [
+    socLabel('• Wilds are sticky during Free Spins'),
+    socLabel('• Free Spins cannot be retriggered'),
+  ];
+  fsRules.forEach((r, i) => {
+    const t = new PIXI.Text(r, bodyStyle); t.x=820; t.y=325+i*25; p4.addChild(t);
+  });
 
   const rLeftPanel = new PIXI.Graphics();
   rLeftPanel.beginFill(0x1a0f08, 0.4); rLeftPanel.drawRoundedRect(120, 95, 650, 280, 8); rLeftPanel.endFill(); p4.addChild(rLeftPanel);
@@ -4073,11 +4679,11 @@ function showGameInfo() {
 
   // Interrupted Rounds section
   const irPanel = new PIXI.Graphics();
-  irPanel.beginFill(0x1a0f08, 0.4); irPanel.drawRoundedRect(120, 400, BASE_W-240, 140, 8); irPanel.endFill(); p4.addChild(irPanel);
+  irPanel.beginFill(0x1a0f08, 0.4); irPanel.drawRoundedRect(120, 410, BASE_W-240, 140, 8); irPanel.endFill(); p4.addChild(irPanel);
   const irTitle = new PIXI.Text('INTERRUPTED ROUNDS', { fontFamily:'Georgia, serif', fontSize:16, fontWeight:'bold', fill:0xd4a017 });
-  irTitle.x=140; irTitle.y=410; p4.addChild(irTitle);
+  irTitle.x=140; irTitle.y=420; p4.addChild(irTitle);
   const irText = new PIXI.Text(socLabel('If a game round is interrupted (disconnection, browser crash, etc.), the game state\nis saved. Upon reconnection, the round will resume from where it was interrupted.\nAny pending free spins or wins will be restored. If recovery fails, the bet is refunded.'), bodyStyle);
-  irText.x=140; irText.y=440; p4.addChild(irText);
+  irText.x=140; irText.y=450; p4.addChild(irText);
   pages.push(p4);
 
   // ── Page 5: Controls ──
@@ -4086,12 +4692,12 @@ function showGameInfo() {
   const ctrls = [
     socLabel('SPIN — Start a spin (or press SPACE)'),
     socLabel('+/− — Increase or decrease bet size'),
-    'TURBO — Toggle fast spin mode',
-    'AUTO — Set automatic spins (10/25/50/100/∞)',
+    socLabel('TURBO — Toggle fast spin mode'),
+    socLabel('AUTO/STOP — Set automatic spins (10/25/50/100/∞). Click STOP, SPIN, or press ESC/SPACE to cancel'),
     socLabel('BUY BONUS — Purchase free spins directly'),
-    'INFO — Open this game information',
-    'FULLSCREEN — Toggle fullscreen mode',
-    'ESC — Close modals',
+    socLabel('INFO — Open this game information'),
+    socLabel('FULLSCREEN — Toggle fullscreen mode'),
+    socLabel('ESC — Close modals'),
   ];
   const ctrlPanel = new PIXI.Graphics();
   ctrlPanel.beginFill(0x1a0f08, 0.4); ctrlPanel.drawRoundedRect(350, 95, 900, 360, 8); ctrlPanel.endFill(); p5.addChild(ctrlPanel);
@@ -4152,9 +4758,10 @@ function showGameInfo() {
   const xBtn = new PIXI.Text('✕', { fontFamily:'Arial', fontSize:28, fill:0x999999 });
   xBtn.anchor.set(0.5); xBtn.x=BASE_W-40; xBtn.y=30; xBtn.interactive=true; xBtn.cursor='pointer';
   xBtn.on('pointerover',()=>{xBtn.style.fill=0xff6666;}); xBtn.on('pointerout',()=>{xBtn.style.fill=0x999999;});
-  xBtn.on('pointerdown',()=>{ app.stage.removeChild(modal); modal.destroy({children:true}); document.getElementById('screenDim').style.display = 'none'; });
+  xBtn.on('pointerdown',()=>{ _gameInfoOverlay = null; app.stage.removeChild(modal); modal.destroy({children:true}); document.getElementById('screenDim').style.display = 'none'; });
   modal.addChild(xBtn);
 
+  _gameInfoOverlay = modal;
   app.stage.addChild(modal);
 }
 
@@ -4201,16 +4808,22 @@ if (_rgsBlocked) {
     // Issue #3: Bet levels from RGS, then currency defaults, then generic fallback
     if (auth.betLevels && auth.betLevels.length) {
       betLevels = auth.betLevels;
-      bet = betLevels[0];
+      bet = auth.defaultBetLevel && betLevels.includes(auth.defaultBetLevel) ? auth.defaultBetLevel : betLevels[0];
     } else if (auth.minBet != null && auth.maxBet != null && auth.stepBet != null) {
       buildBetLevels(auth.minBet, auth.maxBet, auth.stepBet);
-      bet = betLevels[0];
+      bet = auth.defaultBetLevel && betLevels.includes(auth.defaultBetLevel) ? auth.defaultBetLevel : betLevels[0];
     } else {
       // Apply currency-specific bet defaults
       const cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD'];
       buildBetLevels(cbd.min, cbd.max, cbd.step);
-      bet = cbd.default;
+      bet = auth.defaultBetLevel && betLevels.includes(auth.defaultBetLevel) ? auth.defaultBetLevel : cbd.default;
       if (!betLevels.includes(bet)) bet = betLevels.reduce((p,c) => Math.abs(c-bet) < Math.abs(p-bet) ? c : p);
+    }
+    // Handle active round on refresh: use the round's bet, not default
+    if (auth.round && auth.round.active) {
+      RGS._roundActive = true;
+      if (auth.round.bet != null) bet = fromRGS(auth.round.bet);
+      console.log('[RGS] Active round detected on refresh, bet:', bet);
     }
     if (auth.disabledFullscreen) { disabledFullscreen = true; if (_fsBtn) _fsBtn.c.visible = false; }
     if (auth.disabledTurbo) { disabledTurbo = true; turboMode = false; if (_turboBtn) _turboBtn.c.visible = false; }
@@ -4220,13 +4833,17 @@ if (_rgsBlocked) {
       if (_buyBtnTxt) _buyBtnTxt.text = socLabel('BUY BONUS');
     }
   } catch(e) {
-    console.warn('RGS auth failed, falling back to demo mode', e);
-    // Graceful fallback: if auth fails, run in demo mode instead of blocking
-    IS_DEMO = true;
-    const _cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD'];
-    buildBetLevels(_cbd.min, _cbd.max, _cbd.step);
-    bet = _cbd.default;
-    if (!betLevels.includes(bet)) bet = betLevels.reduce((p,c) => Math.abs(c-bet) < Math.abs(p-bet) ? c : p);
+    console.error('RGS auth failed:', e);
+    // Show error page — do NOT fall back to demo mode in production
+    if (!IS_DEMO) {
+      showRGSError('Unable to connect to the game server. Please check your connection and try again.');
+    } else {
+      // Demo mode fallback only when explicitly in demo
+      const _cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD'];
+      buildBetLevels(_cbd.min, _cbd.max, _cbd.step);
+      bet = _cbd.default;
+      if (!betLevels.includes(bet)) bet = betLevels.reduce((p,c) => Math.abs(c-bet) < Math.abs(p-bet) ? c : p);
+    }
   }
 }
 
@@ -4242,32 +4859,120 @@ try {
 loadBook('buy_bonus');
 loadBook('super_buy_bonus');
 
-// ── Session Recovery — resume interrupted FS round ──
+// ── Session Recovery — handle interrupted round on reload ──
+// Only restore FS state if the RGS ACTUALLY has an active round.
+// Stale localStorage from old sessions must NOT corrupt a fresh game.
 const _savedState = loadGameState();
-if (_savedState && _savedState.inFS && _savedState.fsLeft > 0) {
+if (_savedState && _savedState.inFS && _savedState.simSpins && _savedState.simSpins.length > 0 && RGS._roundActive) {
+  console.log('[RECOVERY] Resuming FS — fsLeft:', _savedState.fsLeft, 'spinIdx:', _savedState.simSpinIdx);
+  // Restore full FS state
+  bet = _savedState.bet || bet;
   inFS = true;
   fsLeft = _savedState.fsLeft;
   roundWin = _savedState.roundWin || 0;
   wildReels = _savedState.wildReels || [];
-  bet = _savedState.bet || bet;
-  balance = _savedState.balance || balance;
-  console.log('Resumed FS session:', fsLeft, 'spins left');
+  _simSpins = _savedState.simSpins;
+  _simSpinIdx = _savedState.simSpinIdx || 0;
+  _simMaxPayout = _savedState.simMaxPayout || 0;
+  _simMode = _savedState.simMode || 'base';
+  RGS._roundHasWin = true;
+  // Restore wild overlays from saved state
+  for (const wr of wildReels) {
+    if (wildOverlays[wr.reel]) {
+      wildOverlays[wr.reel].visible = true;
+      const bdg = wildOverlays[wr.reel].getChildByName && wildOverlays[wr.reel].getChildByName('badge');
+      if (bdg) { bdg.visible = true; }
+    }
+  }
+  // Restore the board from the last completed spin
+  if (_simSpinIdx > 0 && _simSpins[_simSpinIdx - 1] && _simSpins[_simSpinIdx - 1].board) {
+    lastBoard = _simSpins[_simSpinIdx - 1].board.map(reel => [...reel]);
+    // Apply sticky wilds to the displayed board
+    for (const wr of wildReels) {
+      for (let row = 0; row < ROWS; row++) lastBoard[wr.reel][row] = WILD;
+    }
+    for (let r = 0; r < REELS; r++) {
+      reelState[r].targetSyms = lastBoard[r];
+      snapReel(r);
+    }
+  }
+  // startSpin() FS branch does fsLeft-- and _simSpinIdx++, so pre-decrement
+  // to replay the spin we were on (not skip it)
+  _simSpinIdx = Math.max(0, _simSpinIdx - 1);
+  fsLeft++;
   updateUI();
-  const rGen = _spinGen;
-  setTimeout(() => { if (_spinGen === rGen && !spinning) startSpin(); }, turboMode ? 100 : 1000);
+  stopAllMusic();
+  playSound('free_spins_music');
+  // Auto-start next FS spin after a brief pause
+  setTimeout(() => { if (inFS && !spinning) startSpin(); }, 1500);
+} else if (_savedState && _savedState.inFS && !RGS._roundActive) {
+  // Stale FS state from old session — RGS has no active round. Just clear it.
+  console.log('[RECOVERY] Stale FS state (no active RGS round), clearing');
+  clearGameState();
+} else if (_savedState && _savedState.inFS) {
+  // Had FS state but no spin data — can't resume, end round cleanly
+  console.log('[RECOVERY] FS state without spin data, ending round');
+  if (_savedState.bet) bet = _savedState.bet;
+  clearGameState();
+  if (RGS._roundActive) {
+    RGS.endRound().then(() => {
+      console.log('[RECOVERY] Active round closed after reload');
+      updateUI();
+    }).catch(e => console.warn('[RECOVERY] endRound failed:', e));
+  }
 } else {
   clearGameState();
+  // If RGS has an active round but no saved FS state, close it too (Issue #3)
+  if (RGS._roundActive && !inFS) {
+    RGS.endRound().then(() => {
+      console.log('[RECOVERY] Stale round closed');
+      updateUI();
+    }).catch(e => console.warn('[RECOVERY] endRound failed:', e));
+  }
+}
+
+// ── Replay Mode Init ──
+if (IS_REPLAY) {
+  // Hide betting controls — replay is read-only playback
+  if (_spinBtn) _spinBtn.interactive = false;
+  if (_autoBtn) _autoBtn.interactive = false;
+  if (_buyBtn) _buyBtn.interactive = false;
+  if (_betUpBtn) _betUpBtn.interactive = false;
+  if (_betDownBtn) _betDownBtn.interactive = false;
+
+  // Fetch replay data from RGS
+  if (RGS_URL) {
+    _replayData = await fetchReplayData();
+  }
+  if (_replayData) {
+    bet = _replayData.bet;
+    balance = 0; // replay doesn't show balance
+    updateUI();
+    showReplayIntro(_replayData, () => {
+      // Re-enable spin for replay playback
+      startReplayPlayback();
+    });
+  } else {
+    showRGSError('Unable to load replay data. The event ID may be invalid or expired.');
+  }
 }
 
 updateUI();
 window.addEventListener('keydown', e => {
-  if (e.code === 'Escape' && buyBonusOverlay) { closeBuyBonus(); return; }
+  if (e.code === 'Escape') {
+    if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); return; }
+    if (buyBonusOverlay) { closeBuyBonus(); return; }
+    return;
+  }
   if (e.code !== 'Space') return;
   if (buyBonusOverlay) { closeBuyBonus(); return; }
   if (activeOverlay) {
     activeOverlay.emit('pointerdown');
     return;
   }
+  // Block spinning while any menu/overlay is open (game info, buy bonus confirm, etc.)
+  if (_gameInfoOverlay) return;
+  if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); return; }
   if (!spinning) startSpin();
 });
 console.log('SHOGUN ✓');

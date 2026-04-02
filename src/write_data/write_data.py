@@ -81,7 +81,7 @@ def make_lookup_tables(gamestate: object, name: str):
     sims = list(gamestate.library.keys())
     sims.sort()
     for sim in sims:
-        file.write("{},1,{}\n".format(gamestate.library[sim]["id"], gamestate.library[sim]["payoutMultiplier"] / 100))
+        file.write("{},1,{}\n".format(gamestate.library[sim]["id"], gamestate.library[sim]["payoutMultiplier"]))
     file.close()
 
 
@@ -145,12 +145,29 @@ def output_lookup_and_force_files(
             )
 
     if compress:
-        temp_book_output_path = os.path.join(gamestate.output_files.book_path, "temp_book_output.json")
+        temp_book_output_path = os.path.join(gamestate.output_files.book_path, "temp_book_output.jsonl")
         with open(temp_book_output_path, "w", encoding="UTF-8") as outfile:
             for fname in file_list:
                 with open(fname, "rb") as infile:
                     decompressed = zstd.ZstdDecompressor().decompress(infile.read())
-                    outfile.write(decompressed.decode("UTF-8"))
+                    chunk_text = decompressed.decode("UTF-8")
+                    outfile.write(chunk_text)
+                    # Ensure each chunk ends with a newline so records are not concatenated
+                    if chunk_text and not chunk_text.endswith("\n"):
+                        outfile.write("\n")
+            outfile.flush()
+
+        # Verify the temp file ends with a newline before compressing
+        with open(temp_book_output_path, "rb") as f_check:
+            f_check.seek(0, 2)  # seek to end
+            fsize = f_check.tell()
+            if fsize > 0:
+                f_check.seek(fsize - 1)
+                last_byte = f_check.read(1)
+                if last_byte != b"\n":
+                    print(f"WARNING: temp book does not end with newline, appending one")
+                    with open(temp_book_output_path, "a", encoding="UTF-8") as f_append:
+                        f_append.write("\n")
 
         # Stream-compress to avoid MemoryError on large sim sets
         final_out = gamestate.output_files.get_final_book_name(betmode, True)
