@@ -1495,10 +1495,10 @@ function showBuyBonusModal() {
     (cost) => {
       playSound('button_click');
       closeBuyBonus();
-      // RGS: debit full buy bonus cost (balance updated by endRound)
+      // RGS: send base bet — RGS multiplies by cost (150×) from index.json
       _simMode = 'buy_bonus';
       if (IS_DEMO) balance = Math.round((balance - cost + bet) * 100) / 100; // pre-compensate: startSpin deducts bet
-      RGS.play(cost, 'buy_bonus');
+      RGS.play(bet, 'buy_bonus');
       _forceBonusSpin = true;
       updateUI();
       startSpin();
@@ -1513,10 +1513,10 @@ function showBuyBonusModal() {
     (cost) => {
       playSound('button_click');
       closeBuyBonus();
-      // RGS: debit full super buy bonus cost (balance updated by endRound)
+      // RGS: send base bet — RGS multiplies by cost (300×) from index.json
       _simMode = 'super_buy_bonus';
       if (IS_DEMO) balance = Math.round((balance - cost + bet) * 100) / 100;
-      RGS.play(cost, 'super_buy_bonus');
+      RGS.play(bet, 'super_buy_bonus');
       _buyBonusSuper = true;
       _forceBonusSpin = true;
       updateUI();
@@ -3369,7 +3369,16 @@ function expandWilds(list, done, gen) {
 
     const ov = wildOverlays[reel];
     const badge = ov.getChildByName('badge');
-    if (badge) badge.getChildByName('btxt').text = `${mult}×`;
+    if (badge) {
+      const btxt = badge.getChildByName('btxt');
+      if (mult >= 2) {
+        btxt.text = `${mult}×`;
+        btxt.visible = true;
+      } else {
+        btxt.visible = false; // hide "1×" text but keep WILD label visible
+      }
+      badge._showBadge = true; // always show badge (WILD label)
+    }
 
     // Show the separate border graphic
     const brd = layerWild.getChildByName('brd_' + reel);
@@ -3960,7 +3969,7 @@ async function fetchReplayData() {
   try {
     const resp = await fetch(RGS_URL + '/wallet/replay', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionID: SESSION_ID, eventID: REPLAY_EVENT_ID })
+      body: JSON.stringify({ sessionID: SESSION_ID, eventID: REPLAY_EVENT_ID, language: LANG })
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
@@ -4437,7 +4446,7 @@ function showGameInfo() {
 
   // ── Page 1: Symbol Values (Paytable) — Grid Layout ──
   const p1 = new PIXI.Container();
-  makeTitle(p1, 'PAYTABLE');
+  makeTitle(p1, socLabel('PAYTABLE'));
 
   // High pay symbols row (4 symbols: dragon, samurai, geisha, oni)
   const highSyms = ['dragon','samurai','geisha','oni'];
@@ -4511,7 +4520,7 @@ function showGameInfo() {
 
   // ── Page 2b: Paylines (Issue #5) ──
   const pPL = new PIXI.Container();
-  makeTitle(pPL, 'PAYLINES');
+  makeTitle(pPL, socLabel('PAYLINES'));
   const plNote = new PIXI.Text(socLabel('20 paylines — wins pay left to right on adjacent reels'), { fontFamily:'Georgia, serif', fontSize:15, fill:0xaaaaaa });
   plNote.anchor.set(0.5); plNote.x = BASE_W/2; plNote.y = 78; pPL.addChild(plNote);
 
@@ -4587,7 +4596,7 @@ function showGameInfo() {
 
   // ── Page 3: Feature Buy ──
   const p3 = new PIXI.Container();
-  makeTitle(p3, 'BUY BONUS');
+  makeTitle(p3, socLabel('BUY BONUS'));
 
   // Free Spins card
   const fsBuyPanel = new PIXI.Graphics();
@@ -4881,7 +4890,14 @@ if (_savedState && _savedState.inFS && _savedState.simSpins && _savedState.simSp
     if (wildOverlays[wr.reel]) {
       wildOverlays[wr.reel].visible = true;
       const bdg = wildOverlays[wr.reel].getChildByName && wildOverlays[wr.reel].getChildByName('badge');
-      if (bdg) { bdg.visible = true; }
+      if (bdg) {
+        const btx = bdg.getChildByName('btxt');
+        if (btx) {
+          if (wr.mult >= 2) { btx.text = `${wr.mult}×`; btx.visible = true; }
+          else { btx.visible = false; }
+        }
+        bdg.visible = true;
+      }
     }
   }
   // Restore the board from the last completed spin
