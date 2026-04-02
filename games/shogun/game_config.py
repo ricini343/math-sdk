@@ -106,11 +106,11 @@ class GameConfig(Config):
 
         # ── Expanding Wild Multiplier Pool ────────────────────────
         # When a wild expands, it gets a random multiplier from this pool.
-        # Base game: no multiplier (wilds are just wilds in base)
-        wild_mult_base = {1: 1}
+        # Base game: Zeus/Hades style — multipliers on every wild (lower avg)
+        wild_mult_base = {2: 200, 3: 80, 5: 20, 10: 5, 20: 2, 50: 1, 100: 1}
 
-        # Free game multiplier pool — matches reference 0_0_expwilds (avg ~3.5x)
-        wild_mult_bonus = {2: 300, 3: 100, 4: 30, 5: 20, 10: 5, 20: 5, 50: 1}
+        # Free game multiplier pool — higher avg, 100× possible
+        wild_mult_bonus = {2: 200, 3: 80, 5: 30, 10: 10, 20: 5, 50: 2, 100: 1}
 
         # ── Shared condition templates ────────────────────────────
         def _cond(force_fg, force_wincap, reel_base, reel_free=None):
@@ -146,7 +146,7 @@ class GameConfig(Config):
         wincap_cond["scatter_triggers"] = {3: 1}
         # Override wincap multiplier pools with heavy high-end values
         wincap_cond["wild_mult_values"][self.freegame_type] = {
-            2: 200, 3: 80, 4: 40, 5: 30, 10: 10, 20: 5, 50: 1
+            2: 150, 3: 60, 5: 30, 10: 15, 20: 8, 50: 3, 100: 2
         }
 
         # ── Bonus buy conditions ───────────────────────────────────
