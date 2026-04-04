@@ -24,6 +24,61 @@ body {
 }
 /* Canvas comes after video in DOM so it stacks on top */
 canvas { display: block; position: relative; background: transparent; z-index: 2; touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* Portrait control bar — premium Shogun theme */
+#portrait-bar {
+  display:none; position:fixed; bottom:0; left:0; right:0; z-index:100;
+  background:linear-gradient(to bottom, transparent 0%, rgba(8,2,14,0.80) 10%, rgba(8,2,14,0.97) 22%);
+  padding:6px 6px 0; padding-bottom:max(6px, env(safe-area-inset-bottom));
+  touch-action:manipulation; -webkit-user-select:none; user-select:none;
+}
+/* Main controls row — buy, spin, +/- */
+#portrait-bar .p-main { display:flex; justify-content:center; align-items:center; gap:6px; margin-bottom:4px; }
+/* Spin button — uses game dragon medallion asset */
+#portrait-bar .p-spin {
+  width:72px; height:72px; border:none; padding:0; background:none;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+}
+#portrait-bar .p-spin img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 10px rgba(212,160,23,0.6)); transition:transform 0.1s; }
+#portrait-bar .p-spin:active img { transform:scale(0.92); }
+/* Buy bonus — uses game ornate button asset */
+#portrait-bar .p-buy-wrap {
+  height:52px; border:none; padding:0; background:none;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; position:relative;
+}
+#portrait-bar .p-buy-wrap img { height:100%; width:auto; object-fit:contain; filter:drop-shadow(0 0 6px rgba(212,160,23,0.4)); }
+#portrait-bar .p-buy-wrap span {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  font:bold 10px/1 Georgia,serif; letter-spacing:2px; color:#ffd700;
+  text-shadow:0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,200,0,0.3);
+  white-space:nowrap; pointer-events:none;
+}
+#portrait-bar .p-buy-wrap:active img { filter:brightness(1.3) drop-shadow(0 0 8px rgba(255,215,0,0.6)); }
+/* +/- bet buttons — dark metallic circles */
+#portrait-bar .p-bet-btn {
+  width:38px; height:38px; border-radius:50%; border:none;
+  background:radial-gradient(circle at 40% 35%, #1a0d2e, #080018);
+  box-shadow:0 0 0 1.5px rgba(212,160,23,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+  color:#c49a50; font-size:20px; font-weight:bold; font-family:Georgia,serif;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+#portrait-bar .p-bet-btn:active { background:radial-gradient(circle at 40% 35%, #2a1500, #0a0018); box-shadow:0 0 0 1.5px #d4a017; color:#ffd700; }
+/* Values row */
+#portrait-bar .p-vals { display:flex; justify-content:space-around; padding:2px 8px; }
+#portrait-bar .p-stat { text-align:center; }
+#portrait-bar .p-lbl { font:bold 8px/1 Arial,sans-serif; color:#8a7040; letter-spacing:2px; margin-bottom:1px; }
+#portrait-bar .p-val { font:bold 13px/1 Georgia,serif; color:#d4c8a0; }
+#portrait-bar .p-val.win { color:#ffd700; font-size:14px; }
+/* Utility icons — inline in main row */
+#portrait-bar .p-util {
+  width:34px; height:34px; border-radius:50%; border:none;
+  background:radial-gradient(circle at 40% 35%, #1a0d2e, #080018);
+  box-shadow:0 0 0 1px rgba(212,160,23,0.3);
+  color:rgba(212,160,23,0.55); font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+}
+#portrait-bar .p-util:active { color:#ffd700; background:rgba(255,255,255,0.08); }
 </style>
 </head>
 <body>
@@ -48,14 +103,19 @@ let CURRENCY_SYMBOL = '€';
 let IS_DEMO = !RGS_URL;
 
 // ── Replay Mode ──
-const REPLAY_EVENT_ID = urlParams.get('replay') || '';
-const IS_REPLAY = !!REPLAY_EVENT_ID;
+const REPLAY_PARAM = urlParams.get('replay') || '';
+const IS_REPLAY = !!REPLAY_PARAM;
+// Event ID: try dedicated param first, fall back to replay param if numeric
+const REPLAY_EVENT_ID = urlParams.get('eventId') || urlParams.get('eventID') || urlParams.get('event_id') || urlParams.get('event') || (/^\d+$/.test(REPLAY_PARAM) ? REPLAY_PARAM : '');
+const REPLAY_MODE = (urlParams.get('mode') || urlParams.get('replayMode') || 'base').toLowerCase();
+const REPLAY_AMOUNT = urlParams.get('amount') || '';
 let _replayData = null;   // processed replay round data
 let _replayBet = 0;       // bet amount from replay
 let _replayMode = 'base'; // mode from replay
 let _replayTotalWin = 0;  // total win from replay
 if (IS_REPLAY) { IS_DEMO = true; } // replay doesn't use live RGS wallet
-console.log('[INIT] IS_DEMO:', IS_DEMO, 'RGS_URL:', RGS_URL, 'SESSION_ID:', SESSION_ID, IS_REPLAY ? 'REPLAY:' + REPLAY_EVENT_ID : '');
+console.log('[INIT] IS_DEMO:', IS_DEMO, 'RGS_URL:', RGS_URL, 'SESSION_ID:', SESSION_ID, IS_REPLAY ? 'REPLAY:' + REPLAY_PARAM : '');
+if (IS_REPLAY) console.log('[REPLAY] eventId:', REPLAY_EVENT_ID, 'mode:', REPLAY_MODE, 'amount:', REPLAY_AMOUNT, 'allParams:', Object.fromEntries(urlParams.entries()));
 
 const CURRENCY_MAP = {
   USD:'$', CAD:'CA$', EUR:'€', GBP:'£', JPY:'¥', CNY:'¥',
@@ -96,6 +156,7 @@ function socLabel(text) {
     'BET COST': 'PLAY WORTH',
     'COST': 'WORTH', 'PRICE': 'WORTH',
     'BET': 'PLAY AMOUNT',
+    'GAMBLING': 'GAMING',
   };
   // Build regex: longest phrases first to prevent partial matches
   const keys = Object.keys(map).sort((a, b) => b.length - a.length);
@@ -643,6 +704,22 @@ await new Promise((resolve) => {
   // Darken the full browser window edges (outside canvas bounds)
   const screenDim = document.getElementById('screenDim');
   screenDim.style.display = 'block';
+  // Portrait: hide PIXI dim (causes double-darkening on canvas band), use screenDim only for uniform look
+  var _splashFitScale = 0;
+  if (window.innerHeight > window.innerWidth * 1.2) {
+    dim.alpha = 0;
+    screenDim.style.background = 'rgba(8,2,14,0.75)';
+    // Temporarily fit canvas to screen HEIGHT (not width) so splash content fills the screen
+    var _splW = window.innerWidth, _splH = window.innerHeight;
+    _splashFitScale = (_splH * 0.92) / BASE_H;
+    var _splCW = Math.round(BASE_W * _splashFitScale);
+    var _splCH = Math.round(BASE_H * _splashFitScale);
+    app.view.style.width = _splCW + 'px';
+    app.view.style.height = _splCH + 'px';
+    app.view.style.position = 'absolute';
+    app.view.style.left = Math.round((_splW - _splCW) / 2) + 'px';
+    app.view.style.top = Math.round((_splH - _splCH) / 2) + 'px';
+  }
 
   // Logo
   const logo = new PIXI.Sprite(T('logo'));
@@ -704,27 +781,92 @@ await new Promise((resolve) => {
   const c3 = makeIntroCard(startX+2*(CW+GAP), cardsY, CW, CH, 'intro_card_3', 'Max Win',
     socLabel('Max Win — 15,000\ntimes your stake!'));
 
+  // ── Portrait splash: carousel + full-screen dark overlay ──
+  var _splashPortrait = window.innerHeight > window.innerWidth * 1.2;
+  var _splashPS = 1;
+  var _dots = [];
+  if (_splashPortrait) {
+    // Compute card scale from visible canvas width (fills ~85% of visible area)
+    var _visW = _splashFitScale > 0 ? (window.innerWidth / _splashFitScale) : 847;
+    _splashPS = Math.min((_visW * 0.75) / CW, 1.8);
+    // Logo: keep readable size, pinned at top
+    logo.scale.set(380 / (logo.texture.width || 350)); logo.y = 15;
+    // Card below logo with clear gap
+    var _cardY = 190;
+    [c1, c2, c3].forEach(function(c) {
+      c.x = BASE_W / 2 - CW * _splashPS / 2;
+      c.y = _cardY;
+      c.scale.set(_splashPS);
+    });
+    c2.alpha = 0; c3.alpha = 0;
+    // Dot indicators
+    for (var _di = 0; _di < 3; _di++) {
+      var _dot = new PIXI.Graphics();
+      _dot.beginFill(0xd4a017); _dot.drawCircle(0, 0, 7); _dot.endFill();
+      _dot.x = BASE_W / 2 + (_di - 1) * 28;
+      _dot.y = _cardY + CH * _splashPS + 18;
+      _dot.alpha = _di === 0 ? 1 : 0.3;
+      _dots.push(_dot); splash.addChild(_dot);
+    }
+  }
+
   // ── Card entrance animation ──
   const cards = [c1, c2, c3];
-  const DURATION=0.45, STAGGER=0.20, SLIDE=80, OVERSHOOT=1.06;
-  const originY = cards.map(c => c.y);
-  const cState = cards.map((_,i) => ({ elapsed: -(i*STAGGER), done:false }));
-  cards.forEach((card,i) => { card.alpha=0; card.scale.set(0.8); card.y=originY[i]+SLIDE; });
-  const entranceFn = () => {
-    const dt = app.ticker.deltaMS/1000;
-    for (let i=0;i<cards.length;i++) {
-      const s=cState[i], card=cards[i]; if(s.done) continue;
-      s.elapsed+=dt; if(s.elapsed<=0) continue;
-      const t=Math.min(s.elapsed/DURATION,1), ease=1-Math.pow(1-t,3);
-      card.alpha=ease; card.y=originY[i]+SLIDE*(1-ease);
-      let sc; if(t<0.75){const t2=t/0.75;sc=0.8+(OVERSHOOT-0.8)*(1-Math.pow(1-t2,2));}
-      else{const t2=(t-0.75)/0.25;sc=OVERSHOOT+(1-OVERSHOOT)*(1-Math.pow(1-t2,2));}
-      card.scale.set(sc);
-      if(t>=1){card.alpha=1;card.scale.set(1);card.y=originY[i];s.done=true;}
-    }
-    if(cState.every(s=>s.done)) app.ticker.remove(entranceFn);
-  };
-  app.ticker.add(entranceFn); cleanups.push(()=>app.ticker.remove(entranceFn));
+  if (!_splashPortrait) {
+    // Landscape: staggered entrance for all 3 cards
+    const DURATION=0.45, STAGGER=0.20, SLIDE=80, OVERSHOOT=1.06;
+    const originY = cards.map(c => c.y);
+    const cState = cards.map((_,i) => ({ elapsed: -(i*STAGGER), done:false }));
+    cards.forEach((card,i) => { card.alpha=0; card.scale.set(0.8); card.y=originY[i]+SLIDE; });
+    const entranceFn = () => {
+      const dt = app.ticker.deltaMS/1000;
+      for (let i=0;i<cards.length;i++) {
+        const s=cState[i], card=cards[i]; if(s.done) continue;
+        s.elapsed+=dt; if(s.elapsed<=0) continue;
+        const t=Math.min(s.elapsed/DURATION,1), ease=1-Math.pow(1-t,3);
+        card.alpha=ease; card.y=originY[i]+SLIDE*(1-ease);
+        let sc; if(t<0.75){const t2=t/0.75;sc=0.8+(OVERSHOOT-0.8)*(1-Math.pow(1-t2,2));}
+        else{const t2=(t-0.75)/0.25;sc=OVERSHOOT+(1-OVERSHOOT)*(1-Math.pow(1-t2,2));}
+        card.scale.set(sc);
+        if(t>=1){card.alpha=1;card.scale.set(1);card.y=originY[i];s.done=true;}
+      }
+      if(cState.every(s=>s.done)) app.ticker.remove(entranceFn);
+    };
+    app.ticker.add(entranceFn); cleanups.push(()=>app.ticker.remove(entranceFn));
+  } else {
+    // Portrait: entrance for first card, then carousel auto-cycle
+    c1.alpha = 0; var _entY = c1.y;
+    c1.y = _entY + 60; c1.scale.set(_splashPS * 0.85);
+    var _entE = 0;
+    const entFn = () => {
+      _entE += app.ticker.deltaMS / 1000;
+      var t = Math.min(_entE / 0.5, 1), ease = 1 - Math.pow(1 - t, 3);
+      c1.alpha = ease; c1.y = _entY + 60 * (1 - ease);
+      c1.scale.set(_splashPS * (0.85 + 0.15 * ease));
+      if (t >= 1) { c1.alpha = 1; c1.y = _entY; c1.scale.set(_splashPS); app.ticker.remove(entFn); }
+    };
+    app.ticker.add(entFn); cleanups.push(() => app.ticker.remove(entFn));
+    // Carousel auto-advance every 3s
+    var _carIdx = 0, _carTimer = 0, _carBusy = false;
+    const carouselFn = () => {
+      if (_carBusy) return;
+      _carTimer += app.ticker.deltaMS / 1000;
+      if (_carTimer >= 3.0) {
+        _carTimer = 0; _carBusy = true;
+        var prev = _carIdx; _carIdx = (_carIdx + 1) % 3;
+        var _fe = 0;
+        const crossFn = () => {
+          _fe += app.ticker.deltaMS / 1000;
+          var t = Math.min(_fe / 0.5, 1);
+          cards[prev].alpha = 1 - t; cards[_carIdx].alpha = t;
+          _dots.forEach(function(d, i) { d.alpha = i === _carIdx ? 1 : 0.3; });
+          if (t >= 1) { _carBusy = false; app.ticker.remove(crossFn); }
+        };
+        app.ticker.add(crossFn); cleanups.push(() => app.ticker.remove(crossFn));
+      }
+    };
+    app.ticker.add(carouselFn); cleanups.push(() => app.ticker.remove(carouselFn));
+  }
 
   // ── Floating gold particles ──
   const particleContainer = new PIXI.Container(); splash.addChild(particleContainer);
@@ -745,6 +887,7 @@ await new Promise((resolve) => {
     fill:[0xfff700,0xffcc00], fillGradientType:PIXI.TEXT_GRADIENT.LINEAR_VERTICAL,
     stroke:0x1a0800, strokeThickness:4, letterSpacing:6 });
   ctc.anchor.set(0.5); ctc.x=BASE_W/2; ctc.y=620; splash.addChild(ctc);
+  if (_splashPortrait) ctc.y = 190 + CH * _splashPS + 42;
   let ctcT=0;
   const pulseFn=()=>{ctcT+=app.ticker.deltaMS/1000;const w=(Math.sin(ctcT*Math.PI*2/1.2)+1)/2;ctc.scale.set(1+0.06*w);ctc.alpha=0.7+0.3*w;};
   app.ticker.add(pulseFn); cleanups.push(()=>app.ticker.remove(pulseFn));
@@ -755,10 +898,12 @@ await new Promise((resolve) => {
   splash.on('pointerdown', () => {
     splash.interactive=false;
     cleanups.forEach(fn=>fn());
+    // Restore normal canvas sizing after splash
+    if (_splashFitScale > 0) { resize(); app.view.style.position=''; app.view.style.left=''; app.view.style.top=''; }
     // Fade out
     let fadeT=0;
     const fadeFn=()=>{fadeT+=app.ticker.deltaMS;splash.alpha=1-Math.min(fadeT/400,1);
-      if(fadeT>=400){app.ticker.remove(fadeFn);app.stage.removeChild(splash);splash.destroy({children:true});screenDim.style.display='none';playSound('base_game_music');resolve();}};
+      if(fadeT>=400){app.ticker.remove(fadeFn);app.stage.removeChild(splash);splash.destroy({children:true});screenDim.style.background='rgba(8,2,14,0.65)';screenDim.style.display='none';playSound('base_game_music');resolve();}};
     app.ticker.add(fadeFn);
   });
 
@@ -1188,9 +1333,9 @@ let _betLabel = null;
 let _buyBtnTxt = null;
 
 {
-  // ── Bar background — transparent, no separator line ──
+  // ── Bar background — subtle dark backing for label readability ──
   const bar = new PIXI.Graphics();
-  bar.beginFill(0x000000, 0.0);
+  bar.beginFill(0x000000, 0.30);
   bar.drawRect(0, BAR_Y, BASE_W, BAR_H);
   bar.endFill();
   layerUI.addChild(bar);
@@ -1198,7 +1343,7 @@ let _buyBtnTxt = null;
   // ── Text helpers ──
   const lbl = (txt, x, y) => {
     const t = new PIXI.Text(txt, {
-      fontFamily: 'Arial', fontSize: 10, fill: 0x8a6030,
+      fontFamily: 'Arial', fontSize: 14, fill: 0xc49a50,
       letterSpacing: 3, fontWeight: 'bold',
     });
     t.anchor.set(0.5, 0); t.x = x; t.y = y;
@@ -1234,12 +1379,12 @@ let _buyBtnTxt = null;
 
   // ── LEFT: BALANCE ──
   const BAL_X = 220;
-  lbl('BALANCE', BAL_X, BAR_Y + 18);
-  txtBalance = bigVal(formatMoney(1000), BAL_X, BAR_MID + 10, 0xffffff, 24);
+  lbl('BALANCE', BAL_X, BAR_Y + 16);
+  txtBalance = bigVal(formatMoney(1000), BAL_X, BAR_Y + 38, 0xffffff, 24);
 
   // ── CENTER: WIN ──
-  lbl('WIN', BASE_W / 2, BAR_Y + 18);
-  txtWin = bigVal(formatMoney(0), BASE_W / 2, BAR_MID + 10, 0xffd700, 30);
+  lbl('WIN', BASE_W / 2, BAR_Y + 16);
+  txtWin = bigVal(formatMoney(0), BASE_W / 2, BAR_Y + 38, 0xffd700, 26);
 
   // Free spins counter — floats above the grid as a prominent banner
   txtFS = new PIXI.Text('', {
@@ -1253,8 +1398,8 @@ let _buyBtnTxt = null;
   // ── RIGHT: BET + [−] [SPIN] [+] ──
   // BET label/value sits left of the minus button
   const BET_X = SPIN_X - 180;
-  _betLabel = lbl(socLabel('BET'), BET_X, BAR_Y + 18);
-  txtBet = bigVal(formatMoney(1), BET_X, BAR_MID + 10, 0xffffff, 24);
+  _betLabel = lbl(socLabel('BET'), BET_X, BAR_Y + 16);
+  txtBet = bigVal(formatMoney(1), BET_X, BAR_Y + 38, 0xffffff, 24);
 
   // − left of spin
   makeBtn('−', SPIN_X - 75, BAR_MID + 10, () => {
@@ -1350,7 +1495,7 @@ function showBuyBonusModal() {
 
   // Full-screen dim — oversized to guarantee full coverage
   const dim = new PIXI.Graphics();
-  dim.beginFill(0x000000, 0.92);
+  dim.beginFill(0x000000, 0.70);
   dim.drawRect(-500, -500, BASE_W + 1000, BASE_H + 1000);
   dim.endFill();
   dim.interactive = true;
@@ -1497,7 +1642,7 @@ function showBuyBonusModal() {
       closeBuyBonus();
       // RGS: send base bet — RGS multiplies by cost (150×) from index.json
       _simMode = 'buy_bonus';
-      if (IS_DEMO) balance = Math.round((balance - cost + bet) * 100) / 100; // pre-compensate: startSpin deducts bet
+      balance = Math.round((balance - cost + bet) * 100) / 100; // pre-compensate: startSpin deducts bet
       RGS.play(bet, 'buy_bonus');
       _forceBonusSpin = true;
       updateUI();
@@ -1515,7 +1660,7 @@ function showBuyBonusModal() {
       closeBuyBonus();
       // RGS: send base bet — RGS multiplies by cost (300×) from index.json
       _simMode = 'super_buy_bonus';
-      if (IS_DEMO) balance = Math.round((balance - cost + bet) * 100) / 100;
+      balance = Math.round((balance - cost + bet) * 100) / 100;
       RGS.play(bet, 'super_buy_bonus');
       _buyBonusSuper = true;
       _forceBonusSpin = true;
@@ -2058,7 +2203,8 @@ function startSpin() {
     wildReels = [];
     resetOverlays();
     roundWin  = 0;
-    if (IS_DEMO && !IS_REPLAY) balance = Math.round((balance - bet) * 100) / 100;
+    if (!IS_REPLAY) balance = Math.round((balance - bet) * 100) / 100;
+    updateUI();
 
     if (IS_REPLAY) {
       // ═══ REPLAY MODE: spin data already loaded by startReplayPlayback ═══
@@ -3101,7 +3247,21 @@ function showWinLines() {
   }
 
   drawLine(lastWinLines[0]);
-  if (lastWinLines.length > 1) _paylineCycleTimer = setInterval(() => { idx = (idx + 1) % lastWinLines.length; drawLine(lastWinLines[idx]); }, 1500);
+  if (lastWinLines.length > 1) {
+    _paylineCycleTimer = setInterval(() => { idx = (idx + 1) % lastWinLines.length; drawLine(lastWinLines[idx]); }, 1500);
+    // Auto-stop cycling after 8 seconds so animations don't loop forever
+    setTimeout(() => { clearWinLines(); }, 8000);
+  }
+
+  // Allow tap/click anywhere on the grid to skip win line animations
+  const skipOverlay = new PIXI.Graphics();
+  skipOverlay.beginFill(0x000000, 0.001); // nearly invisible hit area
+  skipOverlay.drawRect(GRID_X, GRID_Y, REELS * CELL, ROWS * CELL);
+  skipOverlay.endFill();
+  skipOverlay.interactive = true;
+  skipOverlay.cursor = 'pointer';
+  skipOverlay.on('pointerdown', () => { clearWinLines(); });
+  paylineLayer.addChild(skipOverlay);
 }
 
 async function afterWilds() {
@@ -3138,7 +3298,7 @@ async function afterWilds() {
       if (spinWin < 0) spinWin = 0;
       roundWin = maxWin;
     }
-    if (IS_DEMO && spinWin > 0) balance = Math.round((balance + spinWin) * 100) / 100;
+    if (!IS_REPLAY && spinWin > 0) balance = Math.round((balance + spinWin) * 100) / 100;
   }
   showWinLines();
 
@@ -3849,7 +4009,7 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb) {
   // Dim is full-size, NOT part of the scaled container
   document.getElementById('screenDim').style.display = 'block';
   const dim = new PIXI.Graphics();
-  dim.beginFill(0x000000, 0.94);
+  dim.beginFill(0x000000, 0.70);
   dim.drawRect(-500, -500, BASE_W + 1000, BASE_H + 1000);
   dim.endFill();
   dim.interactive = false;
@@ -3880,13 +4040,15 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb) {
   }
 
   // "CONGRATULATIONS!" / top title — luxury gold, no orange glow
+  // Shrink long titles to fit portrait visible area (~700px usable)
+  var _titleFS = topText.length > 16 ? 48 : 68;
   const t0 = new PIXI.Text(topText, {
-    fontFamily: 'Georgia, serif', fontSize: 68, fontWeight: 'bold',
+    fontFamily: 'Georgia, serif', fontSize: _titleFS, fontWeight: 'bold',
     fill: [0xfff4d0, 0xd4a017, 0xfff4d0],
     fillGradientStops: [0, 0.5, 1],
     stroke: 0x3a1a00, strokeThickness: 5,
     dropShadow: true, dropShadowColor: 0x000000, dropShadowBlur: 16, dropShadowDistance: 3,
-    letterSpacing: 6,
+    letterSpacing: topText.length > 16 ? 3 : 6,
   });
   t0.anchor.set(0.5); t0.x = BASE_W / 2; t0.y = BASE_H / 2 - 210;
   c.addChild(t0);
@@ -3932,14 +4094,17 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb) {
   };
   app.ticker.add(pulseFn);
 
-  // Animate in
+  // Animate in — scale down for portrait to fit visible area
+  var _fsPS = 1.0;
+  if (window.innerHeight > window.innerWidth * 1.2) _fsPS = 0.65;
   app.stage.addChild(c);
-  c.alpha = 0; c.scale.set(0.88);
+  c.alpha = 0; c.scale.set(0.88 * _fsPS);
+  if (_fsPS < 1) { c.pivot.set(BASE_W / 2, BASE_H / 2); c.x = BASE_W / 2; c.y = BASE_H / 2; }
   let ticks = 0, inFn;
   inFn = (dt) => {
     ticks += dt;
     c.alpha = Math.min(ticks / 12, 1);
-    c.scale.set(0.88 + Math.min(ticks / 12, 1) * 0.12);
+    c.scale.set((0.88 + Math.min(ticks / 12, 1) * 0.12) * _fsPS);
     // float sparks
     sparks.forEach(s => { s.y += s._vy; s.x += s._vx; s.alpha = Math.max(0, s._life - ticks * 0.008); });
     if (ticks >= 12) app.ticker.remove(inFn);
@@ -3965,24 +4130,44 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb) {
 //  REPLAY MODE — Playback of historical rounds
 // ─────────────────────────────────────────────────────────────
 async function fetchReplayData() {
-  if (!REPLAY_EVENT_ID || !RGS_URL) return null;
+  // Replay uses locally loaded book data. The Event ID from the Replay tab
+  // is the index into the book array for the specified mode.
+  const mode = REPLAY_MODE || 'base';
+  console.log('[REPLAY] Looking up book entry — mode:', mode, 'eventId:', REPLAY_EVENT_ID);
+
+  // Ensure the book for this mode is loaded
+  await loadBook(mode);
+  const book = _books[mode];
+  if (!book || !book.length) {
+    console.error('[REPLAY] No book data for mode:', mode);
+    return null;
+  }
+
+  // Find the entry by event ID (index into book array)
+  const eventIdx = REPLAY_EVENT_ID ? parseInt(REPLAY_EVENT_ID, 10) : 0;
+  let entry = null;
+  if (!isNaN(eventIdx) && eventIdx >= 0 && eventIdx < book.length) {
+    entry = book[eventIdx];
+  } else if (REPLAY_EVENT_ID) {
+    // Try matching by simulation_id field if present
+    entry = book.find(e => String(e.simulation_id) === REPLAY_EVENT_ID || String(e.id) === REPLAY_EVENT_ID);
+  }
+  if (!entry) {
+    // Fallback: use first entry so replay still shows something
+    console.warn('[REPLAY] Event ID', REPLAY_EVENT_ID, 'not found in book (length:', book.length, '), using first entry');
+    entry = book[0];
+  }
+
   try {
-    const resp = await fetch(RGS_URL + '/wallet/replay', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionID: SESSION_ID, eventID: REPLAY_EVENT_ID, language: LANG })
-    });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const data = await resp.json();
-    if (!data.round || !data.round.state) throw new Error('No round data');
-    const modeName = (data.round.mode || 'BASE').toLowerCase();
-    const betAmt = data.round.bet != null ? fromRGS(data.round.bet) : bet;
-    const payout = data.round.payoutMultiplier || 0;
-    const processed = processBookEntry({ events: data.round.state, payoutMultiplier: payout * 100 });
+    const betAmt = REPLAY_AMOUNT ? fromRGS(parseInt(REPLAY_AMOUNT, 10)) : bet;
+    const payout = (entry.payoutMultiplier || 0);
+    const processed = processBookEntry(entry);
+    console.log('[REPLAY] Loaded entry — payout:', processed.totalPayout, 'spins:', processed.spins.length);
     return { spins: processed.spins, totalPayout: processed.totalPayout,
-             mode: modeName, bet: betAmt, totalWin: processed.totalPayout * betAmt,
-             payoutMultiplier: payout };
+             mode: mode, bet: betAmt, totalWin: processed.totalPayout * betAmt,
+             payoutMultiplier: processed.totalPayout };
   } catch(e) {
-    console.error('[REPLAY] Failed to fetch:', e);
+    console.error('[REPLAY] Failed to process book entry:', e);
     return null;
   }
 }
@@ -4001,7 +4186,7 @@ function showReplayIntro(data, cb) {
 
   document.getElementById('screenDim').style.display = 'block';
   const dim = new PIXI.Graphics();
-  dim.beginFill(0x0a0a2e, 0.96);
+  dim.beginFill(0x0a0a2e, 0.70);
   dim.drawRect(-500, -500, BASE_W + 1000, BASE_H + 1000);
   dim.endFill();
   app.stage.addChild(dim);
@@ -4036,9 +4221,9 @@ function showReplayIntro(data, cb) {
   const rows = [
     ['Mode', modeLabel],
     [socLabel('Base Bet'), formatMoney(data.bet)],
-    [socLabel('Feature Multiplier'), costMult],
-    [socLabel('Total Play Cost'), formatMoney(data.mode.includes('buy') ? data.bet * (data.mode === 'super_buy_bonus' ? 300 : 150) : data.bet)],
-    [socLabel('Final Multiplier'), data.payoutMultiplier.toFixed(2) + 'x'],
+    [socLabel('Cost Multiplier'), costMult],
+    [socLabel('Total Bet Cost'), formatMoney(data.mode.includes('buy') ? data.bet * (data.mode === 'super_buy_bonus' ? 300 : 150) : data.bet)],
+    [socLabel('Payout Multiplier'), data.payoutMultiplier.toFixed(2) + 'x'],
     ['Total Win', formatMoney(data.totalWin)],
   ];
   rows.forEach(([label, value], i) => {
@@ -4385,6 +4570,7 @@ function updateUI() {
       txtWin.scale.set(1);
     }
   }
+  if (typeof _syncPortraitBar === 'function') _syncPortraitBar();
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -4403,10 +4589,10 @@ function showGameInfo() {
   let currentPage = 0;
 
   // ── Style helpers ──
-  const titleStyle = { fontFamily:'Georgia, serif', fontSize:28, fontWeight:'bold', fill:[0xfff700,0xffcc00], fillGradientStops:[0,1], stroke:0x1a0800, strokeThickness:4, letterSpacing:3 };
-  const subTitleStyle = { fontFamily:'Georgia, serif', fontSize:20, fontWeight:'bold', fill:0xd4a017, letterSpacing:2 };
-  const bodyStyle = { fontFamily:'Georgia, serif', fontSize:16, fill:0xddccaa, lineHeight:24, wordWrap:true, wordWrapWidth:700 };
-  const smallStyle = { fontFamily:'Georgia, serif', fontSize:13, fill:0x999999, lineHeight:20, wordWrap:true, wordWrapWidth:700 };
+  const titleStyle = { fontFamily:'Georgia, serif', fontSize:32, fontWeight:'bold', fill:[0xfff700,0xffcc00], fillGradientStops:[0,1], stroke:0x1a0800, strokeThickness:4, letterSpacing:3 };
+  const subTitleStyle = { fontFamily:'Georgia, serif', fontSize:22, fontWeight:'bold', fill:0xd4a017, letterSpacing:2 };
+  const bodyStyle = { fontFamily:'Georgia, serif', fontSize:19, fill:0xddccaa, lineHeight:28, wordWrap:true, wordWrapWidth:700 };
+  const smallStyle = { fontFamily:'Georgia, serif', fontSize:15, fill:0x999999, lineHeight:22, wordWrap:true, wordWrapWidth:700 };
   const payNumStyle = { fontFamily:'Georgia, serif', fontSize:14, fill:0xffffff };
   const payLabelStyle = { fontFamily:'Georgia, serif', fontSize:12, fill:0x888888 };
 
@@ -4639,9 +4825,9 @@ function showGameInfo() {
   const rulesRight = [
     'RTP: 97.00%',
     socLabel('Max Win: 15,000× bet'),
-    socLabel('Base Game Win Cap: 500× bet'),
-    socLabel('Free Spin Win Cap: 2,000× bet'),
-    socLabel('Total Round Cap: 15,000× bet'),
+    '',
+    socLabel('Max Win Per Mode: 15,000× bet'),
+    '',
   ];
 
   // Base Mode section
@@ -4732,8 +4918,8 @@ function showGameInfo() {
     'SHOGUN is a game of chance. Past results do not guarantee future outcomes.\n\n' +
     'This game uses a certified Random Number Generator (RNG) to determine\nall game outcomes. The theoretical Return to Player (RTP) is 97.00%.\n\n' +
     socLabel('The maximum win per round is capped at 15,000× the bet amount.\n') +
-    'Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Winnings are settled according to the amount received from the Remote Game Server and not from events within the web browser. TM and \u00A9 2026 Stake Engine.\n\n' +
-    'Please play responsibly. If you feel you may have a gambling problem,\nplease seek help at a certified support organization.',
+    socLabel('Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Winnings are settled according to the amount received from the Remote Game Server and not from events within the web browser. TM and \u00A9 2026 Stake Engine.\n\n') +
+    socLabel('Please play responsibly. If you feel you may have a gambling problem,\nplease seek help at a certified support organization.'),
     { fontFamily:'Georgia, serif', fontSize:15, fill:0xbbaa88, lineHeight:24, wordWrap:true, wordWrapWidth:BASE_W-460 }
   );
   legalText.x=230; legalText.y=115; p6.addChild(legalText);
@@ -4742,9 +4928,23 @@ function showGameInfo() {
   copyright.anchor.set(0.5); copyright.x=BASE_W/2; copyright.y=500; p6.addChild(copyright);
   pages.push(p6);
 
-  // Show first page
-  pages.forEach(p => { p.visible = false; modal.addChild(p); });
+  // Show first page — wrap in container that scales for portrait
+  const pageWrap = new PIXI.Container();
+  pages.forEach(p => { p.visible = false; pageWrap.addChild(p); });
   pages[0].visible = true;
+  if (window.innerHeight > window.innerWidth * 1.2) {
+    // Per-page scale tuned to each page's content width
+    // Visible canvas: ~x376-1223. Scale = min(424/(800-leftX), 423/(rightX-800))
+    // [paytable(382-1217), bonus(200-1200), paylines(80-1520), buy(200-1150), rules(120-1300), controls(350-1250), legal(200-1370)]
+    var _ps = [0.92, 0.70, 0.56, 0.70, 0.60, 0.88, 0.70];
+    pages.forEach(function(p, i) {
+      var s = _ps[i] || 0.72;
+      p.scale.set(s);
+      p.x = BASE_W * (1 - s) / 2;
+      p.y = BASE_H * (1 - s) / 2 * 0.35;
+    });
+  }
+  modal.addChild(pageWrap);
 
   // Page indicator
   const pageNum = new PIXI.Text('1 / '+pages.length, { fontFamily:'Georgia, serif', fontSize:16, fill:0x888888 });
@@ -4752,7 +4952,7 @@ function showGameInfo() {
 
   function goPage(n) { pages[currentPage].visible=false; currentPage=n; pages[currentPage].visible=true; pageNum.text=(currentPage+1)+' / '+pages.length; }
 
-  // Nav arrows
+  // Nav arrows — positioned inside grid area so they're visible in portrait
   const makeArrow = (label, x, dir) => {
     const a = new PIXI.Text(label, { fontFamily:'Georgia, serif', fontSize:36, fontWeight:'bold', fill:0xd4a017 });
     a.anchor.set(0.5); a.x=x; a.y=BASE_H/2; a.interactive=true; a.cursor='pointer';
@@ -4760,15 +4960,29 @@ function showGameInfo() {
     a.on('pointerdown',()=>{ const np=currentPage+dir; if(np>=0&&np<pages.length) goPage(np); });
     modal.addChild(a);
   };
-  makeArrow('‹', 60, -1);
-  makeArrow('›', BASE_W-60, 1);
+  makeArrow('‹', GRID_X - 10, -1);
+  makeArrow('›', GRID_X + GRID_W + 10, 1);
 
-  // Close button
+  // Close button — inside visible area for portrait
+  const closeInfo = () => { _gameInfoOverlay = null; app.stage.removeChild(modal); modal.destroy({children:true}); document.getElementById('screenDim').style.display = 'none'; };
   const xBtn = new PIXI.Text('✕', { fontFamily:'Arial', fontSize:28, fill:0x999999 });
-  xBtn.anchor.set(0.5); xBtn.x=BASE_W-40; xBtn.y=30; xBtn.interactive=true; xBtn.cursor='pointer';
+  xBtn.anchor.set(0.5); xBtn.x=GRID_X+GRID_W-20; xBtn.y=55; xBtn.interactive=true; xBtn.cursor='pointer';
   xBtn.on('pointerover',()=>{xBtn.style.fill=0xff6666;}); xBtn.on('pointerout',()=>{xBtn.style.fill=0x999999;});
-  xBtn.on('pointerdown',()=>{ _gameInfoOverlay = null; app.stage.removeChild(modal); modal.destroy({children:true}); document.getElementById('screenDim').style.display = 'none'; });
+  xBtn.on('pointerdown',()=>{ playSound('button_click'); closeInfo(); });
   modal.addChild(xBtn);
+
+  // Swipe gesture for page navigation (mobile touch)
+  let _swStartX = 0;
+  dim.on('pointerdown', (e) => { _swStartX = e.data.global.x; });
+  dim.on('pointerup', (e) => {
+    const dx = e.data.global.x - _swStartX;
+    if (Math.abs(dx) > 40) {
+      const np = currentPage + (dx < 0 ? 1 : -1);
+      if (np >= 0 && np < pages.length) goPage(np);
+    } else if (Math.abs(dx) < 8) {
+      closeInfo();  // tap (no swipe) on background = close
+    }
+  });
 
   _gameInfoOverlay = modal;
   app.stage.addChild(modal);
@@ -4786,16 +5000,120 @@ const _pwSub = new PIXI.Text('This game is best played in landscape mode', { fon
 _pwSub.anchor.set(0.5); _pwSub.x=BASE_W/2; _pwSub.y=BASE_H/2+30; portraitWarning.addChild(_pwSub);
 app.stage.addChild(portraitWarning);
 
-// Enhanced resize — portrait mode scales to fit width, no rotation required
+// ── Portrait logo (above canvas) ─────────────────────────────
+const _portraitLogo = document.createElement('img');
+_portraitLogo.src = 'assets/logo.png';
+_portraitLogo.id = 'portrait-logo';
+_portraitLogo.style.cssText = 'display:none; position:absolute; z-index:101; pointer-events:none;' +
+  'left:50%; transform:translateX(-50%); height:auto;';
+document.body.appendChild(_portraitLogo);
+
+// ── Portrait HTML control bar ────────────────────────────────
+const _portraitBar = document.createElement('div');
+_portraitBar.id = 'portrait-bar';
+_portraitBar.innerHTML =
+  '<div class="p-main">' +
+    '<button class="p-util" id="p-info">\u24D8</button>' +
+    '<button class="p-util" id="p-sound">\u266B</button>' +
+    '<button class="p-buy-wrap" id="p-buy"><img src="assets/buy_bonus_btn.png" alt=""><span>' + socLabel('BUY\nBONUS') + '</span></button>' +
+    '<button class="p-bet-btn" id="p-minus">\u2212</button>' +
+    '<button class="p-spin" id="p-spin"><img src="assets/spin_btn.png" alt="SPIN"></button>' +
+    '<button class="p-bet-btn" id="p-plus">+</button>' +
+    '<button class="p-util" id="p-turbo">\u26A1</button>' +
+  '</div>' +
+  '<div class="p-vals">' +
+    '<div class="p-stat"><div class="p-lbl">BALANCE</div><div class="p-val" id="p-bal"></div></div>' +
+    '<div class="p-stat"><div class="p-lbl">WIN</div><div class="p-val win" id="p-win"></div></div>' +
+    '<div class="p-stat"><div class="p-lbl" id="p-bet-lbl">' + socLabel('BET') + '</div><div class="p-val" id="p-bet"></div></div>' +
+  '</div>';
+document.body.appendChild(_portraitBar);
+
+// Wire portrait bar button handlers
+document.getElementById('p-spin').addEventListener('pointerdown', function(e){ e.preventDefault(); startSpin(); });
+document.getElementById('p-minus').addEventListener('pointerdown', function(e){
+  e.preventDefault(); if (spinning || inFS) return;
+  var i = betLevels.indexOf(bet); if (i > 0) { bet = betLevels[i - 1]; updateUI(); }
+});
+document.getElementById('p-plus').addEventListener('pointerdown', function(e){
+  e.preventDefault(); if (spinning || inFS) return;
+  var i = betLevels.indexOf(bet); if (i < betLevels.length - 1) { bet = betLevels[i + 1]; updateUI(); }
+});
+document.getElementById('p-buy').addEventListener('pointerdown', function(e){
+  e.preventDefault(); if (!spinning && !inFS) showBuyBonusModal();
+});
+document.getElementById('p-turbo').addEventListener('pointerdown', function(e){
+  e.preventDefault(); turboMode = !turboMode; _updateTurboBtn();
+  this.style.color = turboMode ? '#ffd700' : 'rgba(212,160,23,0.45)';
+});
+document.getElementById('p-sound').addEventListener('pointerdown', function(e){
+  e.preventDefault(); toggleSound();
+  this.style.opacity = soundEnabled ? '1' : '0.4';
+});
+document.getElementById('p-info').addEventListener('pointerdown', function(e){
+  e.preventDefault(); showGameInfo();
+});
+
+function _syncPortraitBar() {
+  var pb = document.getElementById('p-bal');
+  if (!pb) return;
+  pb.textContent = formatMoney(balance);
+  document.getElementById('p-bet').textContent = formatMoney(bet);
+  var pw = document.getElementById('p-win');
+  pw.textContent = formatMoney(roundWin > 0 ? roundWin : 0);
+  pw.style.color = roundWin > 0 ? '#ffd700' : '#a08030';
+  // Hide buy bonus during free spins
+  document.getElementById('p-buy').style.display = inFS ? 'none' : '';
+  // Sync turbo state
+  document.getElementById('p-turbo').style.color = turboMode ? '#ffd700' : 'rgba(212,160,23,0.45)';
+}
+
+// Enhanced resize — portrait: grid fills phone width, HTML bar for controls
 const _origResizeFn = resize;
 const _enhancedResize = () => {
   const w = window.innerWidth, h = window.innerHeight;
   const isPortrait = h > w * 1.2;
-  // Always scale to fit — in portrait, fit to width so game is visible (just smaller)
-  const s = Math.min(w / BASE_W, h / BASE_H);
-  app.view.style.width  = (BASE_W * s) + 'px';
-  app.view.style.height = (BASE_H * s) + 'px';
-  // Never show portrait warning — game must be playable without rotation
+  // Reset styles
+  app.view.style.position = '';
+  app.view.style.left = '';
+  app.view.style.top = '';
+  if (isPortrait) {
+    // Scale canvas so grid (720px of 1600) fills ~85% of viewport width
+    const targetGridW = w * 0.85;
+    const s = targetGridW / GRID_W;          // CSS-px per canvas-px
+    const cw = Math.round(BASE_W * s);       // full canvas CSS width (~742px on iPhone)
+    const ch = Math.round(BASE_H * s);       // full canvas CSS height (~418px)
+    app.view.style.width  = cw + 'px';
+    app.view.style.height = ch + 'px';
+    app.view.style.position = 'absolute';
+    // Center grid horizontally — left/right canvas edges clipped by overflow:hidden
+    const gridCenterCSS = (GRID_X + GRID_W / 2) * s;
+    app.view.style.left = Math.round(w / 2 - gridCenterCSS) + 'px';
+    // Show logo above canvas
+    const logoH = Math.round(w * 0.12);     // logo height ~12% of viewport width
+    _portraitLogo.style.display = 'block';
+    _portraitLogo.style.width = Math.round(w * 0.40) + 'px';
+    _portraitLogo.style.top = '6px';
+    // Position canvas below logo, above portrait bar
+    const barH = _portraitBar.offsetHeight || 120;
+    const topOffset = logoH + 8;             // logo height + small gap
+    const availH = h - barH - topOffset;
+    app.view.style.top = Math.round(topOffset + Math.max(0, (availH - ch) / 3)) + 'px';
+    // Show portrait HTML bar & sync values; hide PIXI bar elements (portrait bar replaces them)
+    _portraitBar.style.display = 'block';
+    _syncPortraitBar();
+    if (txtBalance) txtBalance.visible = false;
+    if (txtWin) txtWin.visible = false;
+    if (txtBet) txtBet.visible = false;
+  } else {
+    const s = Math.min(w / BASE_W, h / BASE_H);
+    app.view.style.width  = (BASE_W * s) + 'px';
+    app.view.style.height = (BASE_H * s) + 'px';
+    _portraitBar.style.display = 'none';
+    _portraitLogo.style.display = 'none';
+    if (txtBalance) txtBalance.visible = true;
+    if (txtWin) txtWin.visible = true;
+    if (txtBet) txtBet.visible = true;
+  }
   portraitWarning.visible = false;
 };
 window.removeEventListener('resize', resize);
@@ -4950,16 +5268,12 @@ if (_savedState && _savedState.inFS && _savedState.simSpins && _savedState.simSp
 // ── Replay Mode Init ──
 if (IS_REPLAY) {
   // Hide betting controls — replay is read-only playback
-  if (_spinBtn) _spinBtn.interactive = false;
-  if (_autoBtn) _autoBtn.interactive = false;
-  if (_buyBtn) _buyBtn.interactive = false;
-  if (_betUpBtn) _betUpBtn.interactive = false;
-  if (_betDownBtn) _betDownBtn.interactive = false;
+  // Disable all interactive children in the UI layer (spin, +/-, auto, turbo, etc.)
+  layerUI.children.forEach(child => { child.interactive = false; child.cursor = 'default'; });
+  if (_autoBtn) _autoBtn.c.interactive = false;
 
-  // Fetch replay data from RGS
-  if (RGS_URL) {
-    _replayData = await fetchReplayData();
-  }
+  // Process replay data from authenticate response
+  _replayData = await fetchReplayData();
   if (_replayData) {
     bet = _replayData.bet;
     balance = 0; // replay doesn't show balance
