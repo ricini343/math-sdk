@@ -15,6 +15,9 @@ class GameExecutables(GameCalculations):
 
     def reset_ko_mult(self):
         """Reset KO multiplier to the starting value for the current mode."""
+        if not hasattr(self, "betmode") or self.betmode is None:
+            self.global_multiplier = 1
+            return
         mode = self.get_current_mode_name()
         self.global_multiplier = self.config.ko_mult_start.get(mode, 1)
 
