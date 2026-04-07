@@ -24,57 +24,67 @@ body {
 }
 /* Canvas comes after video in DOM so it stacks on top */
 canvas { display: block; position: relative; background: transparent; z-index: 2; touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-/* Portrait control bar — premium Shogun theme */
-#portrait-bar {
-  display:none; position:fixed; bottom:0; left:0; right:0; z-index:100;
-  background:linear-gradient(to bottom, transparent 0%, rgba(8,2,14,0.80) 10%, rgba(8,2,14,0.97) 22%);
-  padding:6px 6px 0; padding-bottom:max(6px, env(safe-area-inset-bottom));
+/* Portrait — floating spin controls (between grid and bottom bar) */
+#portrait-spin-area {
+  display:none; position:fixed; left:0; right:0; z-index:101;
+  padding:0 12px;
   touch-action:manipulation; -webkit-user-select:none; user-select:none;
+  pointer-events:none;
 }
-/* Main controls row — buy, spin, +/- */
-#portrait-bar .p-main { display:flex; justify-content:center; align-items:center; gap:6px; margin-bottom:4px; }
-/* Spin button — uses game dragon medallion asset */
-#portrait-bar .p-spin {
-  width:72px; height:72px; border:none; padding:0; background:none;
-  cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+#portrait-spin-area > * { pointer-events:auto; }
+#portrait-spin-area .ps-row { display:flex; justify-content:center; align-items:center; gap:10px; }
+/* Buy bonus — clean, no extra background */
+#portrait-spin-area .p-buy-wrap {
+  height:50px; border:none; padding:0; background:#1a0a00; border-radius:6px;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; position:relative; flex-shrink:0;
 }
-#portrait-bar .p-spin img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 10px rgba(212,160,23,0.6)); transition:transform 0.1s; }
-#portrait-bar .p-spin:active img { transform:scale(0.92); }
-/* Buy bonus — uses game ornate button asset */
-#portrait-bar .p-buy-wrap {
-  height:52px; border:none; padding:0; background:none;
-  cursor:pointer; -webkit-tap-highlight-color:transparent; position:relative;
-}
-#portrait-bar .p-buy-wrap img { height:100%; width:auto; object-fit:contain; filter:drop-shadow(0 0 6px rgba(212,160,23,0.4)); }
-#portrait-bar .p-buy-wrap span {
+#portrait-spin-area .p-buy-wrap img { height:100%; width:auto; object-fit:contain; }
+#portrait-spin-area .p-buy-wrap span {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   font:bold 10px/1 Georgia,serif; letter-spacing:2px; color:#ffd700;
-  text-shadow:0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,200,0,0.3);
+  text-shadow:0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,200,0,0.4);
   white-space:nowrap; pointer-events:none;
 }
-#portrait-bar .p-buy-wrap:active img { filter:brightness(1.3) drop-shadow(0 0 8px rgba(255,215,0,0.6)); }
-/* +/- bet buttons — dark metallic circles */
-#portrait-bar .p-bet-btn {
-  width:38px; height:38px; border-radius:50%; border:none;
+#portrait-spin-area .p-buy-wrap:active img { filter:brightness(1.4); }
+/* +/- bet buttons */
+#portrait-spin-area .p-bet-btn {
+  width:40px; height:40px; border-radius:50%; border:none;
   background:radial-gradient(circle at 40% 35%, #1a0d2e, #080018);
   box-shadow:0 0 0 1.5px rgba(212,160,23,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
-  color:#c49a50; font-size:20px; font-weight:bold; font-family:Georgia,serif;
+  color:#c49a50; font-size:22px; font-weight:bold; font-family:Georgia,serif;
   display:flex; align-items:center; justify-content:center;
-  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
 }
-#portrait-bar .p-bet-btn:active { background:radial-gradient(circle at 40% 35%, #2a1500, #0a0018); box-shadow:0 0 0 1.5px #d4a017; color:#ffd700; }
-/* Values row */
-#portrait-bar .p-vals { display:flex; justify-content:space-around; padding:2px 8px; }
-#portrait-bar .p-stat { text-align:center; }
-#portrait-bar .p-lbl { font:bold 8px/1 Arial,sans-serif; color:#8a7040; letter-spacing:2px; margin-bottom:1px; }
-#portrait-bar .p-val { font:bold 13px/1 Georgia,serif; color:#d4c8a0; }
-#portrait-bar .p-val.win { color:#ffd700; font-size:14px; }
-/* Utility icons — inline in main row */
+#portrait-spin-area .p-bet-btn:active { background:radial-gradient(circle at 40% 35%, #2a1500, #0a0018); box-shadow:0 0 0 1.5px #d4a017; color:#ffd700; }
+/* Spin button — large and prominent */
+#portrait-spin-area .p-spin {
+  width:80px; height:80px; border:none; padding:0; background:none;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+}
+#portrait-spin-area .p-spin img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 12px rgba(212,160,23,0.6)); transition:transform 0.1s; }
+#portrait-spin-area .p-spin:active img { transform:scale(0.92); }
+
+/* Portrait bottom bar — utils + values only */
+#portrait-bar {
+  display:none; position:fixed; bottom:0; left:0; right:0; z-index:100;
+  background:linear-gradient(to bottom, rgba(8,2,14,0.0) 0%, rgba(8,2,14,0.70) 30%, rgba(8,2,14,0.85) 100%);
+  padding:6px 8px 0; padding-bottom:max(4px, env(safe-area-inset-bottom));
+  touch-action:manipulation; -webkit-user-select:none; user-select:none;
+}
+/* Utility row — info, sound, turbo */
+#portrait-bar .p-utils-row { display:flex; justify-content:center; align-items:center; gap:16px; margin-bottom:6px; }
+/* Values strip — BALANCE | WIN | BET */
+#portrait-bar .p-vals { display:flex; justify-content:space-around; align-items:center; padding:4px 12px 6px; border-top:1px solid rgba(212,160,23,0.15); }
+#portrait-bar .p-stat { text-align:center; flex:1; }
+#portrait-bar .p-lbl { font:bold 9px/1 Arial,sans-serif; color:#8a7040; letter-spacing:2px; margin-bottom:3px; text-transform:uppercase; }
+#portrait-bar .p-val { font:bold 15px/1 Georgia,serif; color:#d4c8a0; }
+#portrait-bar .p-val.win { color:#ffd700; font-size:16px; }
+/* Utility icons */
 #portrait-bar .p-util {
-  width:34px; height:34px; border-radius:50%; border:none;
+  width:36px; height:36px; border-radius:50%; border:none;
   background:radial-gradient(circle at 40% 35%, #1a0d2e, #080018);
   box-shadow:0 0 0 1px rgba(212,160,23,0.3);
-  color:rgba(212,160,23,0.55); font-size:14px;
+  color:rgba(212,160,23,0.55); font-size:15px;
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
 }
@@ -157,6 +167,7 @@ function socLabel(text) {
     'COST': 'WORTH', 'PRICE': 'WORTH',
     'BET': 'PLAY AMOUNT',
     'GAMBLING': 'GAMING',
+    'REFUNDED': 'RESTORED',
   };
   // Build regex: longest phrases first to prevent partial matches
   const keys = Object.keys(map).sort((a, b) => b.length - a.length);
@@ -188,7 +199,7 @@ const RGS = {
   _endingRound: false,
   _rgsBoardApplied: false,
   async authenticate() {
-    if (IS_DEMO) { const _cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD']; return { balance:1000, minBet:_cbd.min, maxBet:_cbd.max, stepBet:_cbd.step, currency:CURRENCY, lang:'en' }; }
+    if (IS_DEMO && !IS_REPLAY) { const _cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD']; return { balance:1000, minBet:_cbd.min, maxBet:_cbd.max, stepBet:_cbd.step, currency:CURRENCY, lang:'en' }; }
     const d = await _rgsPost('/wallet/authenticate', {});
     if (!d || d._error) throw new Error('Auth failed');
     const bal = (d.balance && d.balance.amount != null) ? fromRGS(d.balance.amount) : 1000;
@@ -206,8 +217,10 @@ const RGS = {
       result.stepBet = fromRGS(cfg.stepBet);
     }
     if (cfg.defaultBetLevel != null) result.defaultBetLevel = fromRGS(cfg.defaultBetLevel);
-    // Pass round data for active round detection on refresh
+    // Pass round data for active round detection on refresh / replay
     if (d.round) result.round = d.round;
+    // Store raw round for replay
+    if (IS_REPLAY && d.round) this._replayRound = d.round;
     return result;
   },
   _lastPlayRes: null, // store play response to check payoutMultiplier
@@ -253,6 +266,8 @@ const RGS = {
     if (payout > 0) console.log('[RGS] win:', payout, 'x bet');
     this._roundHasWin = (roundActive === true);
     this._payoutMultiplier = payout || 0;
+    // Send betEvent AFTER play response confirms round is active
+    this.betEvent('base');
     // Process ALL RGS state events into spin data (boards, wins, scatters, wilds, FS)
     // This replaces local book data so scatter triggers, FS, etc. match the RGS outcome
     this._rgsBoard = null;
@@ -352,7 +367,8 @@ const RGS = {
   },
   async betEvent(eventStr) {
     if (IS_DEMO) return;
-    _rgsPost('/bet/event', { event: eventStr });
+    if (!this._roundActive) return; // skip if no active round
+    try { await _rgsPost('/bet/event', { event: eventStr }); } catch(e) {}
   }
 };
 
@@ -1328,17 +1344,17 @@ const BAR_MID = BAR_Y + BAR_H / 2;  // vertical center of bar
 const SPIN_X  = BASE_W - 175;       // pulled left so +/- fit on screen
 const SPIN_Y  = BAR_Y + 47;         // flush: top of 90px button = BAR_Y+2, no slot overlap
 
-let txtBalance, txtBet, txtWin, txtFS;
+let txtBalance, txtBet, txtWin, txtFS, lblWin, barBg;
 let _betLabel = null;
 let _buyBtnTxt = null;
 
 {
   // ── Bar background — subtle dark backing for label readability ──
-  const bar = new PIXI.Graphics();
-  bar.beginFill(0x000000, 0.30);
-  bar.drawRect(0, BAR_Y, BASE_W, BAR_H);
-  bar.endFill();
-  layerUI.addChild(bar);
+  barBg = new PIXI.Graphics();
+  barBg.beginFill(0x000000, 0.30);
+  barBg.drawRect(0, BAR_Y, BASE_W, BAR_H);
+  barBg.endFill();
+  layerUI.addChild(barBg);
 
   // ── Text helpers ──
   const lbl = (txt, x, y) => {
@@ -1383,7 +1399,7 @@ let _buyBtnTxt = null;
   txtBalance = bigVal(formatMoney(1000), BAL_X, BAR_Y + 38, 0xffffff, 24);
 
   // ── CENTER: WIN ──
-  lbl('WIN', BASE_W / 2, BAR_Y + 16);
+  lblWin = lbl('WIN', BASE_W / 2, BAR_Y + 16);
   txtWin = bigVal(formatMoney(0), BASE_W / 2, BAR_Y + 38, 0xffd700, 26);
 
   // Free spins counter — floats above the grid as a prominent banner
@@ -1915,6 +1931,7 @@ function makeSpinBtn(x, y) {
   // — Interactions —
   c.on('pointerdown', () => {
     playSound('button_click');
+    if (_skipWinLines) { _skipWinLines(); return; }
     if (spinning) return;
     if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); _hideAutoPicker(); return; }
     startSpin(); c.scale.set(0.93);
@@ -2195,7 +2212,8 @@ function startSpin() {
   _spinGen++;
   clearWinLines();
   playSound('spin_start');
-  RGS.betEvent(inFS ? 'freespin' : 'base');
+  // betEvent for FS: round is already active, safe to send immediately
+  if (inFS) RGS.betEvent('freespin');
 
   // Base game: clear any expanded wilds from previous spin before generating new board.
   // FS: wildReels persists (sticky mechanic) — only cleared in triggerFS/endFS.
@@ -3075,6 +3093,8 @@ function showWinCelebration(winAmount, onComplete) {
 function showFSWinFlash(winAmount, onComplete) {
   spinning = true;  // Block input during flash
   playSound('coin_count');
+  let _skipped = false;
+
   const label = new PIXI.Text(formatMoney(winAmount), {
     fontFamily: 'Georgia, serif', fontSize: 52, fontWeight: 'bold',
     fill: [0xffffff, 0xffd700],
@@ -3089,9 +3109,36 @@ function showFSWinFlash(winAmount, onComplete) {
   label.alpha = 0;
   app.stage.addChild(label);
 
+  // Skip overlay — click/tap anywhere to skip FS win flash
+  const skipHit = new PIXI.Graphics();
+  skipHit.beginFill(0x000000, 0.001);
+  skipHit.drawRect(0, 0, BASE_W, BASE_H);
+  skipHit.endFill();
+  skipHit.interactive = true;
+  skipHit.cursor = 'pointer';
+  app.stage.addChild(skipHit);
+
+  function cleanup() {
+    app.ticker.remove(fn);
+    if (label.parent) app.stage.removeChild(label);
+    if (skipHit.parent) app.stage.removeChild(skipHit);
+    label.destroy();
+    skipHit.destroy();
+    stopSound('coin_count');
+    spinning = false;
+  }
+
+  skipHit.on('pointerdown', () => {
+    if (_skipped) return;
+    _skipped = true;
+    cleanup();
+    onComplete();
+  });
+
   let ticks = 0;
   const totalTicks = turboMode ? 20 : 70; // turbo: ~0.3s, normal: ~1.2s
   const fn = (dt) => {
+    if (_skipped) return;
     ticks += dt;
     const p = ticks / totalTicks;
     if (p < 0.15) {
@@ -3110,10 +3157,9 @@ function showFSWinFlash(winAmount, onComplete) {
       label.y = BASE_H / 2 - 30 * t;
     }
     if (ticks >= totalTicks) {
-      app.ticker.remove(fn);
-      if (label.parent) app.stage.removeChild(label);
-      label.destroy();
-      spinning = false;
+      if (_skipped) return;
+      _skipped = true;
+      cleanup();
       onComplete();
     }
   };
@@ -3123,16 +3169,26 @@ function showFSWinFlash(winAmount, onComplete) {
 // ── Payline Visualization ──
 let _paylineCycleTimer = null;
 let _paylinePulseTimer = null;
+let _skipWinLines = null; // global skip function — set during payline cycling
 function clearWinLines() {
   if (_paylineCycleTimer) { clearInterval(_paylineCycleTimer); _paylineCycleTimer = null; }
   if (_paylinePulseTimer) { cancelAnimationFrame(_paylinePulseTimer); _paylinePulseTimer = null; }
   paylineLayer.removeChildren();
 }
-function showWinLines() {
+function showWinLines(totalWin, onComplete) {
   clearWinLines();
-  if (lastWinLines.length === 0) return;
+  if (lastWinLines.length === 0) { if (onComplete) onComplete(); return; }
   let idx = 0;
   let pulsePhase = 0;
+  let _finished = false;
+  function finishCycling() {
+    if (_finished) return;
+    _finished = true;
+    _skipWinLines = null;
+    clearWinLines();
+    if (onComplete) onComplete();
+  }
+  _skipWinLines = finishCycling;
   const PAYLINE_COLORS = [0xFF4444, 0x44FF44, 0x4488FF, 0xFFAA00, 0xFF44FF, 0x44FFFF, 0xFFFF44, 0xFF8844,
     0x88FF44, 0x4444FF, 0xFF4488, 0x44FFAA, 0xAA44FF, 0xFFFF88, 0x88FFFF, 0xFF88FF, 0xAAFF44, 0x44AAFF, 0xFF44AA, 0xAAFFAA];
 
@@ -3246,11 +3302,38 @@ function showWinLines() {
     pulse();
   }
 
+  let runningTotal = 0;
   drawLine(lastWinLines[0]);
+  // Show running total in bottom bar (cumulative as each payline is shown)
+  runningTotal = Math.round((runningTotal + lastWinLines[0].win) * 100) / 100;
+  if (txtWin && runningTotal > 0) {
+    txtWin.text = formatMoney(runningTotal);
+    txtWin.style.fill = 0xffd700;
+    txtWin.scale.set(1);
+  }
   if (lastWinLines.length > 1) {
-    _paylineCycleTimer = setInterval(() => { idx = (idx + 1) % lastWinLines.length; drawLine(lastWinLines[idx]); }, 1500);
-    // Auto-stop cycling after 8 seconds so animations don't loop forever
-    setTimeout(() => { clearWinLines(); }, 8000);
+    let shown = 1;
+    _paylineCycleTimer = setInterval(() => {
+      if (shown >= lastWinLines.length) {
+        clearInterval(_paylineCycleTimer);
+        _paylineCycleTimer = null;
+        setTimeout(finishCycling, turboMode ? 400 : 1000);
+        return;
+      }
+      idx = shown;
+      drawLine(lastWinLines[idx]);
+      // Add this payline's win to running total
+      runningTotal = Math.round((runningTotal + lastWinLines[idx].win) * 100) / 100;
+      if (txtWin && runningTotal > 0) {
+        txtWin.text = formatMoney(runningTotal);
+        txtWin.style.fill = 0xffd700;
+        txtWin.scale.set(1);
+      }
+      shown++;
+    }, 1500);
+  } else {
+    // Single payline — brief pause then finish
+    setTimeout(finishCycling, turboMode ? 400 : 1000);
   }
 
   // Allow tap/click anywhere on the grid to skip win line animations
@@ -3260,7 +3343,7 @@ function showWinLines() {
   skipOverlay.endFill();
   skipOverlay.interactive = true;
   skipOverlay.cursor = 'pointer';
-  skipOverlay.on('pointerdown', () => { clearWinLines(); });
+  skipOverlay.on('pointerdown', () => { finishCycling(); });
   paylineLayer.addChild(skipOverlay);
 }
 
@@ -3300,14 +3383,16 @@ async function afterWilds() {
     }
     if (!IS_REPLAY && spinWin > 0) balance = Math.round((balance + spinWin) * 100) / 100;
   }
-  showWinLines();
-
   // Update sticky wilds from spin data (works for both RGS and demo now)
   if (spinData && spinData.stickyWilds) {
     wildReels = spinData.stickyWilds.map(w => ({ reel: w.reel, mult: w.mult }));
   }
 
-  updateUI();
+  // Update balance/bet/FS in bottom bar (NOT win — paylines show individual wins first)
+  if (txtBalance) txtBalance.text = formatMoney(balance);
+  if (txtBet) txtBet.text = formatMoney(bet);
+  if (txtFS) txtFS.text = inFS ? `FREE SPINS: ${fsLeft} LEFT` : '';
+  if (typeof _syncPortraitBar === 'function') _syncPortraitBar();
   if (inFS) saveGameState();
 
   // Check scatter trigger from spin data (now uses RGS data in real mode!)
@@ -3345,10 +3430,9 @@ async function afterWilds() {
   // Skip for: FS trigger (round stays active for free spins), FS mode, demo.
   if (!IS_DEMO && !inFS && scatterCount < 3) {
     await RGS.endRound();
-    updateUI();
+    if (txtBalance) txtBalance.text = formatMoney(balance);
+    if (typeof _syncPortraitBar === 'function') _syncPortraitBar();
   }
-  // NOW it's safe to allow new spins — round is closed
-  spinning = false;
 
   const continueAfterCelebration = async () => {
     // continueAfterCelebration
@@ -3390,21 +3474,28 @@ async function afterWilds() {
     }
   };
 
-  if (inFS && spinWin > 0) {
-    showFSWinFlash(spinWin, continueAfterCelebration);
-  } else if (tier) {
-    showWinCelebration(spinWin, continueAfterCelebration);
-  } else if (spinWin > 0 && !inFS) {
-    // Small base game win — brief win flash with amount pop-up
-    showSmallWinFlash(spinWin, continueAfterCelebration);
-  } else {
-    continueAfterCelebration();
-  }
+  // Show paylines first (individual wins in bottom bar), then total + celebration
+  showWinLines(spinWin, () => {
+    spinning = false;
+    updateUI(); // Now shows total win in bottom bar
+
+    if (inFS && spinWin > 0) {
+      showFSWinFlash(spinWin, continueAfterCelebration);
+    } else if (tier) {
+      showWinCelebration(spinWin, continueAfterCelebration);
+    } else if (spinWin > 0 && !inFS) {
+      showSmallWinFlash(spinWin, continueAfterCelebration);
+    } else {
+      continueAfterCelebration();
+    }
+  });
 }
 
 // Brief win amount flash for small base game wins (below big-win tier)
 function showSmallWinFlash(winAmount, onComplete) {
   spinning = true; // block new spins during flash animation
+  let _skipped = false;
+
   const winText = new PIXI.Text(formatMoney(winAmount), {
     fontFamily: 'Georgia, serif', fontSize: 48, fontWeight: 'bold',
     fill: [0xffd700, 0xffaa00],
@@ -3419,9 +3510,35 @@ function showSmallWinFlash(winAmount, onComplete) {
   winText.alpha = 0;
   app.stage.addChild(winText);
 
+  // Skip overlay — click/tap anywhere to skip
+  const skipHit = new PIXI.Graphics();
+  skipHit.beginFill(0x000000, 0.001);
+  skipHit.drawRect(0, 0, BASE_W, BASE_H);
+  skipHit.endFill();
+  skipHit.interactive = true;
+  skipHit.cursor = 'pointer';
+  app.stage.addChild(skipHit);
+
+  function cleanup() {
+    app.ticker.remove(fn);
+    if (winText.parent) winText.parent.removeChild(winText);
+    if (skipHit.parent) app.stage.removeChild(skipHit);
+    winText.destroy();
+    skipHit.destroy();
+    spinning = false;
+  }
+
+  skipHit.on('pointerdown', () => {
+    if (_skipped) return;
+    _skipped = true;
+    cleanup();
+    onComplete();
+  });
+
   let t = 0;
   const duration = turboMode ? 40 : 70;
   const fn = (dt) => {
+    if (_skipped) return;
     t += dt;
     const p = t / duration;
     if (p < 0.2) {
@@ -3440,10 +3557,9 @@ function showSmallWinFlash(winAmount, onComplete) {
       winText.y = BASE_H / 2 - 30 * fp;
     }
     if (t >= duration) {
-      app.ticker.remove(fn);
-      if (winText.parent) winText.parent.removeChild(winText);
-      winText.destroy();
-      spinning = false;
+      if (_skipped) return;
+      _skipped = true;
+      cleanup();
       onComplete();
     }
   };
@@ -4062,7 +4178,7 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb) {
   banner.anchor.set(0.5);
   banner.x = BASE_W / 2;
   banner.y = BASE_H / 2 + 10;
-  banner.blendMode = PIXI.BLEND_MODES.ADD;
+  banner.blendMode = PIXI.BLEND_MODES.NORMAL;
   c.addChild(banner);
 
   // Text on the scroll: [labelSmall, bigNumber, labelSmall]
@@ -4130,12 +4246,29 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb) {
 //  REPLAY MODE — Playback of historical rounds
 // ─────────────────────────────────────────────────────────────
 async function fetchReplayData() {
-  // Replay uses locally loaded book data. The Event ID from the Replay tab
-  // is the index into the book array for the specified mode.
   const mode = REPLAY_MODE || 'base';
-  console.log('[REPLAY] Looking up book entry — mode:', mode, 'eventId:', REPLAY_EVENT_ID);
+  const betAmt = REPLAY_AMOUNT ? fromRGS(parseInt(REPLAY_AMOUNT, 10)) : bet;
+  console.log('[REPLAY] Fetching replay — mode:', mode, 'eventId:', REPLAY_EVENT_ID, 'bet:', betAmt);
 
-  // Ensure the book for this mode is loaded
+  // Primary: use RGS round data from authenticate response
+  if (RGS._replayRound && RGS._replayRound.state && RGS._replayRound.state.length > 0) {
+    try {
+      const payout = RGS._replayRound.payoutMultiplier || 0;
+      const processed = processBookEntry({
+        events: RGS._replayRound.state,
+        payoutMultiplier: payout * 100
+      });
+      console.log('[REPLAY] Loaded from RGS — payout:', processed.totalPayout, 'spins:', processed.spins.length);
+      return { spins: processed.spins, totalPayout: processed.totalPayout,
+               mode: mode, bet: betAmt, totalWin: processed.totalPayout * betAmt,
+               payoutMultiplier: processed.totalPayout };
+    } catch(e) {
+      console.error('[REPLAY] Failed to process RGS round data:', e);
+    }
+  }
+
+  // Fallback: try locally loaded book data (dev/demo only)
+  console.log('[REPLAY] No RGS round data, trying local book files');
   await loadBook(mode);
   const book = _books[mode];
   if (!book || !book.length) {
@@ -4143,26 +4276,21 @@ async function fetchReplayData() {
     return null;
   }
 
-  // Find the entry by event ID (index into book array)
   const eventIdx = REPLAY_EVENT_ID ? parseInt(REPLAY_EVENT_ID, 10) : 0;
   let entry = null;
   if (!isNaN(eventIdx) && eventIdx >= 0 && eventIdx < book.length) {
     entry = book[eventIdx];
   } else if (REPLAY_EVENT_ID) {
-    // Try matching by simulation_id field if present
     entry = book.find(e => String(e.simulation_id) === REPLAY_EVENT_ID || String(e.id) === REPLAY_EVENT_ID);
   }
   if (!entry) {
-    // Fallback: use first entry so replay still shows something
     console.warn('[REPLAY] Event ID', REPLAY_EVENT_ID, 'not found in book (length:', book.length, '), using first entry');
     entry = book[0];
   }
 
   try {
-    const betAmt = REPLAY_AMOUNT ? fromRGS(parseInt(REPLAY_AMOUNT, 10)) : bet;
-    const payout = (entry.payoutMultiplier || 0);
     const processed = processBookEntry(entry);
-    console.log('[REPLAY] Loaded entry — payout:', processed.totalPayout, 'spins:', processed.spins.length);
+    console.log('[REPLAY] Loaded from book — payout:', processed.totalPayout, 'spins:', processed.spins.length);
     return { spins: processed.spins, totalPayout: processed.totalPayout,
              mode: mode, bet: betAmt, totalWin: processed.totalPayout * betAmt,
              payoutMultiplier: processed.totalPayout };
@@ -4576,10 +4704,245 @@ function updateUI() {
 // ─────────────────────────────────────────────────────────────
 //  GAME INFO / PAYTABLE MODAL
 // ─────────────────────────────────────────────────────────────
+// ── Portrait HTML Game Info — scrollable single-page overlay ──
+function _showGameInfoHTML() {
+  if (document.getElementById('html-game-info')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'html-game-info';
+  var isPortrait = window.innerHeight > window.innerWidth * 1.2;
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;' +
+    'background:rgba(8,2,14,0.96);overflow-y:auto;-webkit-overflow-scrolling:touch;' +
+    'padding:20px 16px 40px;font-family:Georgia,serif;color:#ddccaa;';
+
+  // Close button
+  const closeBtn = document.createElement('div');
+  closeBtn.textContent = '\u2715';
+  closeBtn.style.cssText = 'position:fixed;top:16px;right:16px;z-index:201;width:40px;height:40px;' +
+    'border-radius:50%;background:rgba(30,15,5,0.8);color:#999;font-size:22px;' +
+    'display:flex;align-items:center;justify-content:center;cursor:pointer;' +
+    'border:1px solid rgba(212,160,23,0.3);';
+  closeBtn.addEventListener('pointerdown', function() {
+    playSound('button_click');
+    overlay.remove();
+  });
+  overlay.appendChild(closeBtn);
+
+  // Responsive sizes
+  var _fs = isPortrait ? {title:22, sub:16, body:14, small:12, sym:52, symLo:42, pay:11, payLo:10, ctrl:13, symW:72, symLoW:58}
+                       : {title:28, sub:20, body:17, small:14, sym:70, symLo:56, pay:14, payLo:13, ctrl:16, symW:110, symLoW:90};
+
+  // Helper: section title
+  function secTitle(text) {
+    return '<div style="text-align:center;margin:32px 0 16px;">' +
+      '<span style="font-size:' + _fs.title + 'px;font-weight:bold;letter-spacing:3px;' +
+      'background:linear-gradient(to bottom,#fff700,#ffcc00);-webkit-background-clip:text;' +
+      '-webkit-text-fill-color:transparent;text-shadow:none;">' + socLabel(text) + '</span>' +
+      '</div>';
+  }
+  // Helper: subsection title
+  function subTitle(text) {
+    return '<div style="color:#d4a017;font-size:' + _fs.sub + 'px;font-weight:bold;letter-spacing:2px;margin:20px 0 10px;text-align:center;">' + socLabel(text) + '</div>';
+  }
+  // Helper: body text
+  function bodyText(text) {
+    return '<div style="font-size:' + _fs.body + 'px;line-height:' + (_fs.body + 8) + 'px;color:#bbaa88;text-align:center;margin:0 8px 14px;">' + text + '</div>';
+  }
+  // Helper: divider
+  function divider() {
+    return '<div style="border-top:1px solid rgba(212,160,23,0.2);margin:28px 20px;"></div>';
+  }
+
+  var html = '';
+
+  // ── PAYTABLE ──
+  html += secTitle('PAYTABLE');
+
+  // High pay symbols
+  html += '<div style="display:flex;justify-content:center;gap:' + (isPortrait?'8':'14') + 'px;flex-wrap:wrap;margin:10px 0;">';
+  ['dragon','samurai','geisha','oni'].forEach(function(sym) {
+    var pays = PAYTABLE[sym];
+    html += '<div style="text-align:center;background:rgba(26,15,8,0.6);border:1px solid rgba(74,53,32,0.5);' +
+      'border-radius:6px;padding:10px 8px;width:' + _fs.symW + 'px;">' +
+      '<img src="assets/symbols/' + sym + '.png" style="width:' + _fs.sym + 'px;height:' + _fs.sym + 'px;object-fit:contain;display:block;margin:0 auto 6px;">' +
+      '<div style="font-size:' + _fs.pay + 'px;color:#fff;line-height:' + (_fs.pay+6) + 'px;">5\u00D7 ' + pays[2] + '<br>4\u00D7 ' + pays[1] + '<br>3\u00D7 ' + pays[0] + '</div></div>';
+  });
+  html += '</div>';
+
+  // Low pay symbols
+  html += '<div style="display:flex;justify-content:center;gap:' + (isPortrait?'6':'12') + 'px;flex-wrap:wrap;margin:10px 0;">';
+  ['A','K','Q','J','10'].forEach(function(sym) {
+    var pays = PAYTABLE[sym];
+    html += '<div style="text-align:center;background:rgba(26,15,8,0.6);border:1px solid rgba(74,53,32,0.5);' +
+      'border-radius:6px;padding:8px 6px;width:' + _fs.symLoW + 'px;">' +
+      '<img src="assets/symbols/' + sym + '.png" style="width:' + _fs.symLo + 'px;height:' + _fs.symLo + 'px;object-fit:contain;display:block;margin:0 auto 4px;">' +
+      '<div style="font-size:' + _fs.payLo + 'px;color:#fff;line-height:' + (_fs.payLo+6) + 'px;">5\u00D7 ' + pays[2] + '<br>4\u00D7 ' + pays[1] + '<br>3\u00D7 ' + pays[0] + '</div></div>';
+  });
+  html += '</div>';
+  html += '<div style="text-align:center;font-size:' + _fs.small + 'px;color:#888;margin:8px 0;">' + socLabel('All values shown as multiplier \u00D7 bet. 20 paylines, left to right.') + '</div>';
+
+  html += divider();
+
+  // ── FEATURES ──
+  html += secTitle('FEATURES');
+
+  // Wild
+  html += subTitle('EXPANDING WILD');
+  html += '<div style="text-align:center;margin:8px 0;">' +
+    '<img src="assets/symbols/wild_tile.png" style="width:70px;height:70px;object-fit:contain;">' +
+    '</div>';
+  html += bodyText(socLabel('Appears on all reels. Substitutes for all symbols except Scatter. Expands to fill the entire reel. Each wild carries a random multiplier that applies to all winning lines passing through it.'));
+  html += '<div style="text-align:center;font-size:12px;color:#d4a017;margin:4px 0 12px;">Multipliers: 2\u00D7 3\u00D7 5\u00D7 8\u00D7 10\u00D7 15\u00D7 20\u00D7 25\u00D7 30\u00D7 50\u00D7 75\u00D7 100\u00D7</div>';
+
+  // Scatter
+  html += subTitle('SCATTER');
+  html += '<div style="text-align:center;margin:8px 0;">' +
+    '<img src="assets/symbols/scatter.png" style="width:70px;height:70px;object-fit:contain;">' +
+    '</div>';
+  html += bodyText(socLabel('Appears on reels 1, 3, and 5 only. Landing 3 or more Scatter symbols triggers 10 Free Spins. During Free Spins, all wild symbols are sticky and persist for the remaining spins.'));
+  html += '<div style="text-align:center;font-size:12px;color:#ff8844;font-weight:bold;margin:4px 0;">' +
+    socLabel('RETRIGGER: Free Spins cannot be retriggered. The bonus round awards a fixed 10 Free Spins.') + '</div>';
+  html += '<div style="text-align:center;font-size:12px;color:#d4a017;font-style:italic;margin:4px 0 12px;">' +
+    socLabel('During Free Spins, wild multipliers from multiple reels are combined for massive combined multipliers.') + '</div>';
+
+  html += divider();
+
+  // ── PAYLINES ──
+  html += secTitle('PAYLINES');
+  html += '<div style="text-align:center;font-size:12px;color:#aaa;margin:0 0 10px;">' + socLabel('20 paylines \u2014 wins pay left to right on adjacent reels') + '</div>';
+  // Draw paylines as small inline SVG diagrams
+  var plColors = ['#f44','#4f4','#48f','#fa0','#f4f','#4ff','#ff4','#f84','#8f4','#44f',
+                  '#f48','#4f8','#84f','#f88','#8fa','#a8f','#fc4','#4cf','#c4f','#f4c'];
+  var _plSz = isPortrait ? 52 : 72;
+  html += '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:' + (isPortrait?'6':'10') + 'px;">';
+  PAYLINES.forEach(function(line, idx) {
+    var svg = '<svg width="' + _plSz + '" height="' + _plSz + '" viewBox="0 0 52 52" style="display:block;">';
+    // Background
+    svg += '<rect x="0" y="0" width="52" height="52" rx="4" fill="rgba(26,15,8,0.5)" stroke="rgba(74,53,32,0.4)" stroke-width="1"/>';
+    // Label
+    svg += '<text x="26" y="10" text-anchor="middle" fill="#d4a017" font-size="8" font-weight="bold">L' + (idx+1) + '</text>';
+    // Grid dots
+    for (var c=0;c<5;c++) for (var r=0;r<5;r++) {
+      svg += '<circle cx="' + (6+c*10) + '" cy="' + (16+r*7) + '" r="2" fill="#333" opacity="0.6"/>';
+    }
+    // Payline path
+    var clr = plColors[idx];
+    svg += '<polyline points="';
+    for (var c2=0;c2<5;c2++) {
+      svg += (6+c2*10) + ',' + (16+line[c2]*7) + ' ';
+    }
+    svg += '" fill="none" stroke="' + clr + '" stroke-width="1.5" opacity="0.9"/>';
+    // Highlight dots
+    for (var c3=0;c3<5;c3++) {
+      svg += '<circle cx="' + (6+c3*10) + '" cy="' + (16+line[c3]*7) + '" r="3" fill="' + clr + '"/>';
+    }
+    svg += '</svg>';
+    html += '<div style="text-align:center;">' + svg + '</div>';
+  });
+  html += '</div>';
+
+  html += divider();
+
+  // ── BUY BONUS ──
+  html += secTitle('BUY BONUS');
+  html += '<div style="background:rgba(26,15,8,0.6);border:1px solid rgba(139,26,26,0.6);border-radius:8px;padding:12px;margin:8px 12px;">';
+  html += '<div style="color:#d4a017;font-size:15px;font-weight:bold;">' + socLabel('FREE SPINS') + '</div>';
+  html += '<div style="font-size:13px;color:#bbaa88;margin:6px 0;">' + socLabel('Purchase 10 Free Spins with random expanding wilds.') + '<br>' + socLabel('Price: 150\u00D7 current bet') + '</div>';
+  html += '<div style="font-size:12px;color:#88aa88;">RTP: 97.00%</div>';
+  html += '</div>';
+
+  html += '<div style="background:rgba(26,15,8,0.6);border:1px solid rgba(201,168,76,0.6);border-radius:8px;padding:12px;margin:8px 12px;">';
+  html += '<div style="color:#d4a017;font-size:15px;font-weight:bold;">' + socLabel('SUPER FREE SPINS') + '</div>';
+  html += '<div style="font-size:13px;color:#bbaa88;margin:6px 0;">' + socLabel('Purchase 10 Free Spins with a guaranteed expanding wild on every spin. Higher win potential.') + '<br>' + socLabel('Price: 300\u00D7 current bet') + '</div>';
+  html += '<div style="font-size:12px;color:#88aa88;">RTP: 97.00%</div>';
+  html += '</div>';
+
+  html += '<div style="text-align:center;font-size:11px;color:#888;margin:8px 12px;">' +
+    socLabel('Feature Buy is not available in all jurisdictions. The bet level used for the bonus is the current bet at time of purchase.') + '</div>';
+
+  html += divider();
+
+  // ── GAME RULES ──
+  html += secTitle('GAME RULES');
+
+  html += '<div style="background:rgba(26,15,8,0.4);border-radius:8px;padding:12px;margin:8px 12px;">';
+  html += subTitle('GENERAL RULES');
+  html += bodyText(socLabel('\u2022 5 reels, 5 rows, 20 paylines<br>\u2022 All wins pay left to right on adjacent reels<br>\u2022 Wins = line value \u00D7 bet \u00D7 wild multiplier<br>\u2022 Wild multipliers from multiple reels are combined'));
+  html += '</div>';
+
+  html += '<div style="background:rgba(26,15,8,0.4);border-radius:8px;padding:12px;margin:8px 12px;">';
+  html += subTitle('RTP & LIMITS');
+  html += bodyText('RTP: 97.00%<br>' + socLabel('Max Win: 15,000\u00D7 bet<br>Max Win Per Mode: 15,000\u00D7 bet'));
+  html += '</div>';
+
+  html += '<div style="display:flex;gap:8px;margin:8px 12px;">';
+  html += '<div style="flex:1;background:rgba(26,15,8,0.4);border-radius:8px;padding:10px;">';
+  html += '<div style="color:#d4a017;font-size:13px;font-weight:bold;margin-bottom:6px;">' + socLabel('BASE MODE') + '</div>';
+  html += '<div style="font-size:12px;color:#bbaa88;line-height:18px;">' + socLabel('\u2022 3+ Scatters trigger 10 Free Spins<br>\u2022 Wilds expand to fill entire reel') + '</div>';
+  html += '</div>';
+  html += '<div style="flex:1;background:rgba(26,15,8,0.4);border-radius:8px;padding:10px;">';
+  html += '<div style="color:#d4a017;font-size:13px;font-weight:bold;margin-bottom:6px;">' + socLabel('FREE SPINS') + '</div>';
+  html += '<div style="font-size:12px;color:#bbaa88;line-height:18px;">' + socLabel('\u2022 Wilds are sticky during Free Spins<br>\u2022 Free Spins cannot be retriggered') + '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  html += divider();
+
+  // ── INTERRUPTED ROUNDS ──
+  html += subTitle('INTERRUPTED ROUNDS');
+  html += bodyText(socLabel('If a game round is interrupted (disconnection, browser crash, etc.), the game state is saved. Upon reconnection, the round will resume from where it was interrupted. Any pending free spins or wins will be restored. If recovery fails, the bet is refunded.'));
+
+  html += divider();
+
+  // ── CONTROLS ──
+  html += secTitle('CONTROLS');
+  var ctrls = [
+    ['SPIN', socLabel('Start a spin (or press SPACE)')],
+    ['+/\u2212', socLabel('Increase or decrease bet size')],
+    ['TURBO', socLabel('Toggle fast spin mode')],
+    [socLabel('BUY BONUS'), socLabel('Purchase free spins directly')],
+    ['INFO', socLabel('Open this game information')],
+    ['ESC', socLabel('Close modals')],
+  ];
+  html += '<div style="margin:0 12px;">';
+  ctrls.forEach(function(c) {
+    html += '<div style="display:flex;gap:10px;margin:6px 0;align-items:baseline;">' +
+      '<span style="color:#d4a017;font-weight:bold;font-size:13px;min-width:80px;">' + c[0] + '</span>' +
+      '<span style="font-size:13px;color:#bbaa88;">' + c[1] + '</span></div>';
+  });
+  html += '</div>';
+
+  html += divider();
+
+  // ── LEGAL ──
+  html += secTitle('LEGAL NOTICE');
+  html += bodyText(
+    'SHOGUN is a game of chance. Past results do not guarantee future outcomes.<br><br>' +
+    'This game uses a certified Random Number Generator (RNG) to determine all game outcomes. The theoretical Return to Player (RTP) is 97.00%.<br><br>' +
+    socLabel('The maximum win per round is capped at 15,000\u00D7 the bet amount. ') +
+    socLabel('Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds.<br><br>') +
+    socLabel('Please play responsibly. If you feel you may have a gambling problem, please seek help at a certified support organization.')
+  );
+  html += '<div style="text-align:center;font-size:11px;color:#666;margin:16px 0 8px;">\u00A9 2026 Stake Engine. All rights reserved.</div>';
+
+  // Insert content in max-width container
+  var content = document.createElement('div');
+  content.style.cssText = 'max-width:700px;margin:0 auto;';
+  content.innerHTML = html;
+  overlay.appendChild(content);
+
+  document.body.appendChild(overlay);
+}
+
 function showGameInfo() {
   if (buyBonusOverlay) return;
   if (_winCelebrationActive) return;
   if (spinning) return;
+
+  // Always use scrollable HTML overlay (both portrait and landscape)
+  return _showGameInfoHTML();
+
+  // Legacy PIXI modal below — kept for reference but no longer reached
   document.getElementById('screenDim').style.display = 'block';
   const modal = new PIXI.Container();
   const dim = new PIXI.Graphics(); dim.beginFill(0x000000,0.88); dim.drawRect(-500,-500,BASE_W+1000,BASE_H+1000); dim.endFill();
@@ -4677,7 +5040,7 @@ function showGameInfo() {
 
   const wTitle = new PIXI.Text('EXPANDING WILD', subTitleStyle);
   wTitle.x=430; wTitle.y=120; p2.addChild(wTitle);
-  const wDesc = new PIXI.Text(socLabel('Appears on reels 2, 3, and 4. Substitutes for all symbols except\nScatter. Expands to fill the entire reel. Each wild carries a random\nmultiplier that applies to all winning lines passing through it.'), bodyStyle);
+  const wDesc = new PIXI.Text(socLabel('Appears on all reels. Substitutes for all symbols except\nScatter. Expands to fill the entire reel. Each wild carries a random\nmultiplier that applies to all winning lines passing through it.'), bodyStyle);
   wDesc.x=430; wDesc.y=155; p2.addChild(wDesc);
   const wMult = new PIXI.Text('Multipliers: 2× 3× 5× 8× 10× 15× 20× 25× 30× 50× 75× 100×', { fontFamily:'Georgia, serif', fontSize:14, fill:0xd4a017 });
   wMult.x=430; wMult.y=250; p2.addChild(wMult);
@@ -4700,7 +5063,7 @@ function showGameInfo() {
   retrNote.x=430; retrNote.y=455; p2.addChild(retrNote);
 
   // Free spins note
-  const fsNote = new PIXI.Text(socLabel('During Free Spins, wild multipliers from multiple reels\nmultiply together for massive combined multipliers.'), { fontFamily:'Georgia, serif', fontSize:14, fill:0xd4a017, fontStyle:'italic' });
+  const fsNote = new PIXI.Text(socLabel('During Free Spins, wild multipliers from multiple reels\nare combined for massive combined multipliers.'), { fontFamily:'Georgia, serif', fontSize:14, fill:0xd4a017, fontStyle:'italic' });
   fsNote.x=430; fsNote.y=495; p2.addChild(fsNote);
   pages.push(p2);
 
@@ -4820,7 +5183,7 @@ function showGameInfo() {
     socLabel('• 5 reels, 5 rows, 20 paylines'),
     socLabel('• All wins pay left to right on adjacent reels'),
     socLabel('• Wins = line value × bet × wild multiplier'),
-    socLabel('• Wild multipliers from multiple reels multiply together'),
+    socLabel('• Wild multipliers from multiple reels are combined'),
   ];
   const rulesRight = [
     'RTP: 97.00%',
@@ -4965,6 +5328,7 @@ function showGameInfo() {
 
   // Close button — inside visible area for portrait
   const closeInfo = () => { _gameInfoOverlay = null; app.stage.removeChild(modal); modal.destroy({children:true}); document.getElementById('screenDim').style.display = 'none'; };
+  modal._close = closeInfo;
   const xBtn = new PIXI.Text('✕', { fontFamily:'Arial', fontSize:28, fill:0x999999 });
   xBtn.anchor.set(0.5); xBtn.x=GRID_X+GRID_W-20; xBtn.y=55; xBtn.interactive=true; xBtn.cursor='pointer';
   xBtn.on('pointerover',()=>{xBtn.style.fill=0xff6666;}); xBtn.on('pointerout',()=>{xBtn.style.fill=0x999999;});
@@ -5009,27 +5373,43 @@ _portraitLogo.style.cssText = 'display:none; position:absolute; z-index:101; poi
 document.body.appendChild(_portraitLogo);
 
 // ── Portrait HTML control bar ────────────────────────────────
-const _portraitBar = document.createElement('div');
-_portraitBar.id = 'portrait-bar';
-_portraitBar.innerHTML =
-  '<div class="p-main">' +
-    '<button class="p-util" id="p-info">\u24D8</button>' +
-    '<button class="p-util" id="p-sound">\u266B</button>' +
+// Floating spin controls (positioned between grid and bottom bar)
+const _portraitSpinArea = document.createElement('div');
+_portraitSpinArea.id = 'portrait-spin-area';
+_portraitSpinArea.innerHTML =
+  '<div class="ps-row">' +
     '<button class="p-buy-wrap" id="p-buy"><img src="assets/buy_bonus_btn.png" alt=""><span>' + socLabel('BUY\nBONUS') + '</span></button>' +
     '<button class="p-bet-btn" id="p-minus">\u2212</button>' +
     '<button class="p-spin" id="p-spin"><img src="assets/spin_btn.png" alt="SPIN"></button>' +
     '<button class="p-bet-btn" id="p-plus">+</button>' +
+  '</div>';
+document.body.appendChild(_portraitSpinArea);
+
+// Bottom bar — utilities + values
+const _portraitBar = document.createElement('div');
+_portraitBar.id = 'portrait-bar';
+_portraitBar.innerHTML =
+  '<div class="p-utils-row">' +
+    '<button class="p-util" id="p-info">\u24D8</button>' +
+    '<button class="p-util" id="p-sound">\u266B</button>' +
     '<button class="p-util" id="p-turbo">\u26A1</button>' +
+    '<button class="p-util" id="p-auto" style="font-size:9px;font-weight:bold;letter-spacing:1px;">AUTO</button>' +
   '</div>' +
   '<div class="p-vals">' +
-    '<div class="p-stat"><div class="p-lbl">BALANCE</div><div class="p-val" id="p-bal"></div></div>' +
-    '<div class="p-stat"><div class="p-lbl">WIN</div><div class="p-val win" id="p-win"></div></div>' +
-    '<div class="p-stat"><div class="p-lbl" id="p-bet-lbl">' + socLabel('BET') + '</div><div class="p-val" id="p-bet"></div></div>' +
+    '<div class="p-stat"><div class="p-lbl">' + socLabel('BALANCE') + '</div><div class="p-val" id="p-bal">0.00</div></div>' +
+    '<div class="p-stat"><div class="p-lbl">' + socLabel('WIN') + '</div><div class="p-val win" id="p-win">0.00</div></div>' +
+    '<div class="p-stat"><div class="p-lbl" id="p-bet-lbl">' + socLabel('BET') + '</div><div class="p-val" id="p-bet">1.00</div></div>' +
   '</div>';
 document.body.appendChild(_portraitBar);
 
-// Wire portrait bar button handlers
-document.getElementById('p-spin').addEventListener('pointerdown', function(e){ e.preventDefault(); startSpin(); });
+// Wire portrait spin area button handlers
+document.getElementById('p-spin').addEventListener('pointerdown', function(e){
+  e.preventDefault();
+  if (_skipWinLines) { _skipWinLines(); return; }
+  if (spinning) return;
+  if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); if (typeof _syncPortraitAuto === 'function') _syncPortraitAuto(); return; }
+  startSpin();
+});
 document.getElementById('p-minus').addEventListener('pointerdown', function(e){
   e.preventDefault(); if (spinning || inFS) return;
   var i = betLevels.indexOf(bet); if (i > 0) { bet = betLevels[i - 1]; updateUI(); }
@@ -5041,6 +5421,7 @@ document.getElementById('p-plus').addEventListener('pointerdown', function(e){
 document.getElementById('p-buy').addEventListener('pointerdown', function(e){
   e.preventDefault(); if (!spinning && !inFS) showBuyBonusModal();
 });
+// Wire portrait bottom bar button handlers
 document.getElementById('p-turbo').addEventListener('pointerdown', function(e){
   e.preventDefault(); turboMode = !turboMode; _updateTurboBtn();
   this.style.color = turboMode ? '#ffd700' : 'rgba(212,160,23,0.45)';
@@ -5052,6 +5433,94 @@ document.getElementById('p-sound').addEventListener('pointerdown', function(e){
 document.getElementById('p-info').addEventListener('pointerdown', function(e){
   e.preventDefault(); showGameInfo();
 });
+// Auto spin — HTML picker for portrait
+document.getElementById('p-auto').addEventListener('pointerdown', function(e){
+  e.preventDefault();
+  if (autoSpins !== 0) {
+    autoSpins = 0; _updateAutoBtn();
+    _syncPortraitAuto();
+    return;
+  }
+  _showPortraitAutoPicker();
+});
+
+function _syncPortraitAuto() {
+  var btn = document.getElementById('p-auto');
+  if (!btn) return;
+  var on = autoSpins !== 0;
+  btn.textContent = autoSpins === -1 ? 'STOP' : autoSpins > 0 ? autoSpins : 'AUTO';
+  btn.style.color = on ? '#ff9944' : 'rgba(212,160,23,0.55)';
+  btn.style.boxShadow = on ? '0 0 0 1.5px #ff6600' : '0 0 0 1px rgba(212,160,23,0.3)';
+}
+
+function _showPortraitAutoPicker() {
+  if (document.getElementById('p-auto-picker')) {
+    document.getElementById('p-auto-picker').remove();
+    return;
+  }
+  var picker = document.createElement('div');
+  picker.id = 'p-auto-picker';
+  picker.style.cssText = 'position:fixed;bottom:' + ((_portraitBar.offsetHeight || 80) + 6) + 'px;' +
+    'left:50%;transform:translateX(-50%);z-index:150;display:flex;gap:6px;' +
+    'background:rgba(10,0,24,0.95);border:1px solid rgba(212,160,23,0.5);' +
+    'border-radius:8px;padding:8px 10px;';
+  [10, 25, 50, 100, '\u221E'].forEach(function(n) {
+    var b = document.createElement('button');
+    b.textContent = n;
+    b.style.cssText = 'width:44px;height:30px;border-radius:4px;border:1px solid rgba(138,96,48,0.8);' +
+      'background:rgba(26,0,48,1);color:#d4a017;font:bold 12px Georgia,serif;cursor:pointer;';
+    b.addEventListener('pointerdown', function(ev) {
+      ev.preventDefault();
+      var count = n === '\u221E' ? -1 : n;
+      picker.remove();
+      _showPortraitAutoConfirm(count);
+    });
+    picker.appendChild(b);
+  });
+  document.body.appendChild(picker);
+  // Auto-dismiss on outside tap
+  setTimeout(function() {
+    document.addEventListener('pointerdown', function dismiss(ev) {
+      if (!picker.contains(ev.target) && ev.target.id !== 'p-auto') {
+        picker.remove();
+        document.removeEventListener('pointerdown', dismiss);
+      }
+    });
+  }, 100);
+}
+
+function _showPortraitAutoConfirm(count) {
+  if (document.getElementById('p-auto-confirm')) document.getElementById('p-auto-confirm').remove();
+  var lbl = count === -1 ? '\u221E' : count;
+  var d = document.createElement('div');
+  d.id = 'p-auto-confirm';
+  d.style.cssText = 'position:fixed;bottom:' + ((_portraitBar.offsetHeight || 80) + 6) + 'px;' +
+    'left:50%;transform:translateX(-50%);z-index:150;' +
+    'background:rgba(10,0,24,0.95);border:1px solid rgba(212,160,23,0.5);' +
+    'border-radius:8px;padding:12px 16px;text-align:center;';
+  d.innerHTML = '<div style="color:#d4a017;font:bold 13px Georgia,serif;margin-bottom:10px;">' +
+    socLabel('Start') + ' ' + lbl + ' ' + socLabel('auto spins?') + '</div>' +
+    '<div style="display:flex;gap:10px;justify-content:center;">' +
+    '<button id="p-auto-yes" style="width:80px;height:30px;border-radius:4px;border:1.5px solid #d4a017;' +
+    'background:#1a0a00;color:#ffcc44;font:bold 12px Georgia,serif;cursor:pointer;">CONFIRM</button>' +
+    '<button id="p-auto-no" style="width:80px;height:30px;border-radius:4px;border:1.5px solid #666;' +
+    'background:#1a1a1a;color:#999;font:bold 12px Georgia,serif;cursor:pointer;">CANCEL</button></div>';
+  document.body.appendChild(d);
+  document.getElementById('p-auto-yes').addEventListener('pointerdown', function(ev) {
+    ev.preventDefault();
+    if (inFS) { d.remove(); return; }
+    playSound('button_click');
+    autoSpins = count;
+    _updateAutoBtn();
+    _syncPortraitAuto();
+    d.remove();
+    if (!spinning) startSpin();
+  });
+  document.getElementById('p-auto-no').addEventListener('pointerdown', function(ev) {
+    ev.preventDefault();
+    d.remove();
+  });
+}
 
 function _syncPortraitBar() {
   var pb = document.getElementById('p-bal');
@@ -5065,6 +5534,8 @@ function _syncPortraitBar() {
   document.getElementById('p-buy').style.display = inFS ? 'none' : '';
   // Sync turbo state
   document.getElementById('p-turbo').style.color = turboMode ? '#ffd700' : 'rgba(212,160,23,0.45)';
+  // Sync auto spin state
+  if (typeof _syncPortraitAuto === 'function') _syncPortraitAuto();
 }
 
 // Enhanced resize — portrait: grid fills phone width, HTML bar for controls
@@ -5077,42 +5548,53 @@ const _enhancedResize = () => {
   app.view.style.left = '';
   app.view.style.top = '';
   if (isPortrait) {
-    // Scale canvas so grid (720px of 1600) fills ~85% of viewport width
+    // Scale canvas so grid fills ~85% of viewport width
     const targetGridW = w * 0.85;
-    const s = targetGridW / GRID_W;          // CSS-px per canvas-px
-    const cw = Math.round(BASE_W * s);       // full canvas CSS width (~742px on iPhone)
-    const ch = Math.round(BASE_H * s);       // full canvas CSS height (~418px)
+    const s = targetGridW / GRID_W;
+    const cw = Math.round(BASE_W * s);
+    const ch = Math.round(BASE_H * s);
     app.view.style.width  = cw + 'px';
     app.view.style.height = ch + 'px';
     app.view.style.position = 'absolute';
-    // Center grid horizontally — left/right canvas edges clipped by overflow:hidden
     const gridCenterCSS = (GRID_X + GRID_W / 2) * s;
     app.view.style.left = Math.round(w / 2 - gridCenterCSS) + 'px';
-    // Show logo above canvas
-    const logoH = Math.round(w * 0.12);     // logo height ~12% of viewport width
+    // Logo — bigger and slightly lower
+    const logoH = Math.round(w * 0.14);
     _portraitLogo.style.display = 'block';
-    _portraitLogo.style.width = Math.round(w * 0.40) + 'px';
-    _portraitLogo.style.top = '6px';
-    // Position canvas below logo, above portrait bar
-    const barH = _portraitBar.offsetHeight || 120;
-    const topOffset = logoH + 8;             // logo height + small gap
-    const availH = h - barH - topOffset;
-    app.view.style.top = Math.round(topOffset + Math.max(0, (availH - ch) / 3)) + 'px';
-    // Show portrait HTML bar & sync values; hide PIXI bar elements (portrait bar replaces them)
+    _portraitLogo.style.width = Math.round(w * 0.48) + 'px';
+    _portraitLogo.style.top = '14px';
+    // Position canvas below logo
+    const barH = _portraitBar.offsetHeight || 80;
+    const spinAreaH = 90; // floating spin controls height
+    const topOffset = logoH + 14;
+    const availH = h - barH - spinAreaH - topOffset;
+    const canvasTop = Math.round(topOffset + Math.max(0, (availH - ch) / 3));
+    app.view.style.top = canvasTop + 'px';
+    // Position floating spin area — closer to the grid, above bottom bar
+    const gridBottomCSS = canvasTop + ch;
+    _portraitSpinArea.style.display = 'flex';
+    _portraitSpinArea.style.justifyContent = 'center';
+    _portraitSpinArea.style.bottom = (barH + 50) + 'px';
+    // Show bottom bar & sync values
     _portraitBar.style.display = 'block';
     _syncPortraitBar();
     if (txtBalance) txtBalance.visible = false;
     if (txtWin) txtWin.visible = false;
+    if (lblWin) lblWin.visible = false;
     if (txtBet) txtBet.visible = false;
+    if (barBg) barBg.visible = false;
   } else {
     const s = Math.min(w / BASE_W, h / BASE_H);
     app.view.style.width  = (BASE_W * s) + 'px';
     app.view.style.height = (BASE_H * s) + 'px';
     _portraitBar.style.display = 'none';
+    _portraitSpinArea.style.display = 'none';
     _portraitLogo.style.display = 'none';
     if (txtBalance) txtBalance.visible = true;
     if (txtWin) txtWin.visible = true;
+    if (lblWin) lblWin.visible = true;
     if (txtBet) txtBet.visible = true;
+    if (barBg) barBg.visible = true;
   }
   portraitWarning.visible = false;
 };
@@ -5290,7 +5772,10 @@ if (IS_REPLAY) {
 updateUI();
 window.addEventListener('keydown', e => {
   if (e.code === 'Escape') {
-    if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); return; }
+    if (_gameInfoOverlay && _gameInfoOverlay._close) { _gameInfoOverlay._close(); return; }
+    var htmlInfo = document.getElementById('html-game-info');
+    if (htmlInfo) { htmlInfo.remove(); return; }
+    if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); if (typeof _syncPortraitAuto === 'function') _syncPortraitAuto(); return; }
     if (buyBonusOverlay) { closeBuyBonus(); return; }
     return;
   }
@@ -5302,6 +5787,7 @@ window.addEventListener('keydown', e => {
   }
   // Block spinning while any menu/overlay is open (game info, buy bonus confirm, etc.)
   if (_gameInfoOverlay) return;
+  if (_skipWinLines) { _skipWinLines(); return; }
   if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); return; }
   if (!spinning) startSpin();
 });
