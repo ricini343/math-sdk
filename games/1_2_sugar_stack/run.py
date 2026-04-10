@@ -30,9 +30,9 @@ if __name__ == "__main__":
     profiling      = False
 
     num_sim_args = {
-        "base":             500000,
-        "buy_bonus":        500000,
-        "super_buy_bonus":  500000,
+        "base":             1000,
+        "buy_bonus":        1000,
+        "super_buy_bonus":  1000,
     }
 
     run_conditions = {
