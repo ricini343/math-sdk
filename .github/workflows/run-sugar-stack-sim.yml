@@ -21,7 +21,7 @@ jobs:
         run: pip install numpy zstandard xlsxwriter matplotlib toml
 
       - name: Run Sugar Stack simulation
-        working-directory: games/fruits
+        working-directory: games/1_2_sugar_stack
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: python3 run.py
