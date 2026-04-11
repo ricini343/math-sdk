@@ -50,7 +50,7 @@ class OptimizationSetup:
                     "wincap": ConstructConditions(
                         rtp=0.01, av_win=wincaps["buy_bonus"], search_conditions=wincaps["buy_bonus"]
                     ).return_dict(),
-                    "freegame": ConstructConditions(rtp=0.96, hr="x").return_dict(),
+                    "freegame": ConstructConditions(rtp=0.95, hr="x").return_dict(),
                 },
                 "scaling": ConstructScaling([
                     {"criteria": "freegame", "scale_factor": 0.9,  "win_range": (10,   50),   "probability": 1.0},
@@ -74,7 +74,7 @@ class OptimizationSetup:
                     "wincap": ConstructConditions(
                         rtp=0.01, av_win=wincaps["super_buy_bonus"], search_conditions=wincaps["super_buy_bonus"]
                     ).return_dict(),
-                    "freegame": ConstructConditions(rtp=0.96, hr="x").return_dict(),
+                    "freegame": ConstructConditions(rtp=0.95, hr="x").return_dict(),
                 },
                 "scaling": ConstructScaling([
                     {"criteria": "freegame", "scale_factor": 0.8,  "win_range": (100,  500),   "probability": 1.0},
