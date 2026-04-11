@@ -2988,8 +2988,8 @@ function startSpin() {
                 }
               }
             }
-            // ~25% chance to land a new Wild on a non-locked reel
-            if (Math.random() < 0.25) {
+            // ~8% chance to land a new Wild on a non-locked reel
+            if (Math.random() < 0.08) {
               const freeReels = [0,1,2,3,4].filter(r => !_lockedWildReels.includes(r));
               if (freeReels.length > 0) {
                 const wr = freeReels[Math.floor(Math.random() * freeReels.length)];
@@ -3045,8 +3045,8 @@ function startSpin() {
           }
         }
       }
-      // ~20% chance for new Wild on unlocked reel
-      if (Math.random() < 0.20) {
+      // ~8% chance for new Wild on unlocked reel
+      if (Math.random() < 0.08) {
         const freeReels = [0,1,2,3,4].filter(r => !lockedReels.includes(r));
         if (freeReels.length > 0) {
           const wr = freeReels[Math.floor(Math.random() * freeReels.length)];
@@ -4612,14 +4612,14 @@ function makeBoard() {
     const wildRow = Math.floor(Math.random() * ROWS);
     board[sr][wildRow] = WILD;
   }
-  // Base game: ~30% chance, any reel (not already sticky)
-  // FS:        ~45% chance, non-sticky reel only
+  // Base game: ~18% chance, any reel (not already sticky)
+  // FS:        ~12% chance, non-sticky reel only (matches FR0 strip wild rate ~1.4% per cell)
   // This is the ONLY place WILD enters the board (besides sticky FS reels above).
-  if (!inFS && Math.random() < 0.30) {
+  if (!inFS && Math.random() < 0.18) {
     const pick    = Math.floor(Math.random() * REELS);
     const wildRow = Math.floor(Math.random() * ROWS);
     board[pick][wildRow] = WILD;  // overwrites whatever was there — 1 wild, 1 reel
-  } else if (inFS && Math.random() < 0.45) {
+  } else if (inFS && Math.random() < 0.12) {
     const available = [0,1,2,3,4].filter(r => !wildReels.some(w => w.reel === r));
     if (available.length > 0) {
       const pick    = available[Math.floor(Math.random() * available.length)];
