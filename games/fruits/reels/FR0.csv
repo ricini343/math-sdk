@@ -30,13 +30,13 @@ Q,A,A,Q,10
 A,10,cherry,A,lemon
 10,K,J,lemon,W
 K,cherry,10,10,K
-SC,J,SC,K,Q
+K,J,lemon,K,Q
 J,Q,K,J,A
 plum,A,lemon,Q,10
 Q,W,Q,A,cherry
 A,lemon,A,10,J
 10,K,J,cherry,K
-K,J,10,K,SC
+K,J,10,K,plum
 lemon,Q,K,J,A
 J,A,Q,plum,10
 Q,plum,W,Q,lemon
@@ -44,7 +44,7 @@ A,10,lemon,A,J
 cherry,K,J,10,K
 10,cherry,10,lemon,Q
 K,J,K,K,A
-SC,Q,SC,J,10
+J,Q,cherry,J,10
 J,A,K,Q,cherry
 Q,lemon,Q,W,J
 W,10,A,cherry,K

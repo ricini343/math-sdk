@@ -45,6 +45,35 @@ class OptimizationSetup:
                     score_type="rtp",
                 ).return_dict(),
             },
+            "double_chance": {
+                "conditions": {
+                    "wincap": ConstructConditions(
+                        rtp=0.01, av_win=wincaps["double_chance"], search_conditions=wincaps["double_chance"]
+                    ).return_dict(),
+                    "0": ConstructConditions(rtp=0, av_win=0, search_conditions=0).return_dict(),
+                    "freegame": ConstructConditions(
+                        rtp=0.50, hr=25, search_conditions={"kind": "scatter"}
+                    ).return_dict(),
+                    "basegame": ConstructConditions(hr=3.5, rtp=0.46).return_dict(),
+                },
+                "scaling": ConstructScaling([
+                    {"criteria": "basegame", "scale_factor": 1.2,  "win_range": (1,    5),    "probability": 1.0},
+                    {"criteria": "basegame", "scale_factor": 1.5,  "win_range": (10,   30),   "probability": 1.0},
+                    {"criteria": "freegame", "scale_factor": 0.8,  "win_range": (500,  1000), "probability": 1.0},
+                    {"criteria": "freegame", "scale_factor": 1.2,  "win_range": (2000, 5000), "probability": 1.0},
+                ]).return_dict(),
+                "parameters": ConstructParameters(
+                    num_show=5000,
+                    num_per_fence=10000,
+                    min_m2m=4,
+                    max_m2m=8,
+                    pmb_rtp=1.0,
+                    sim_trials=5000,
+                    test_spins=[50, 100, 200],
+                    test_weights=[0.3, 0.4, 0.3],
+                    score_type="rtp",
+                ).return_dict(),
+            },
             "buy_bonus": {
                 "conditions": {
                     "wincap": ConstructConditions(

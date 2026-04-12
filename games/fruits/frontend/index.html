@@ -50,7 +50,7 @@ canvas { display: block; position: relative; background: transparent; z-index: 2
 #portrait-spin-area .p-buy-wrap img { height:100%; width:auto; object-fit:contain; }
 #portrait-spin-area .p-buy-wrap span {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  font:bold 10px/1 Georgia,serif; letter-spacing:2px; color:#ffd700;
+  font:bold 10px/1 'Cherry Bomb One','Fredoka',sans-serif; letter-spacing:2px; color:#ffd700;
   text-shadow:0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,200,0,0.4);
   white-space:nowrap; pointer-events:none;
 }
@@ -60,7 +60,7 @@ canvas { display: block; position: relative; background: transparent; z-index: 2
   width:40px; height:40px; border-radius:50%; border:none;
   background:radial-gradient(circle at 40% 35%, #3d1a0a, #1a0800);
   box-shadow:0 0 0 1.5px rgba(255,150,100,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
-  color:#ff9a50; font-size:22px; font-weight:bold; font-family:Georgia,serif;
+  color:#ff9a50; font-size:22px; font-weight:bold; font-family:'Cherry Bomb One','Fredoka',sans-serif;
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
 }
@@ -86,7 +86,7 @@ canvas { display: block; position: relative; background: transparent; z-index: 2
 #portrait-bar .p-vals { display:flex; justify-content:space-around; align-items:center; padding:4px 12px 6px; border-top:1px solid rgba(255,150,100,0.15); }
 #portrait-bar .p-stat { text-align:center; flex:1; }
 #portrait-bar .p-lbl { font:bold 9px/1 Arial,sans-serif; color:#b06040; letter-spacing:2px; margin-bottom:3px; text-transform:uppercase; }
-#portrait-bar .p-val { font:bold 15px/1 Georgia,serif; color:#d4c8a0; }
+#portrait-bar .p-val { font:bold 15px/1 'Cherry Bomb One','Fredoka',sans-serif; color:#d4c8a0; }
 #portrait-bar .p-val.win { color:#ffd700; font-size:16px; }
 /* Utility icons */
 #portrait-bar .p-util {
@@ -227,8 +227,6 @@ let _replayTotalWin = 0;  // total win from replay
 const REPLAY_GAME = urlParams.get('game') || '';
 const REPLAY_VERSION = urlParams.get('version') || '';
 if (IS_REPLAY) { IS_DEMO = true; } // replay: no wallet ops
-console.log('[INIT] IS_DEMO:', IS_DEMO, 'RGS_URL:', RGS_URL, 'SESSION_ID:', SESSION_ID, IS_REPLAY ? 'REPLAY event=' + REPLAY_EVENT_ID : '');
-if (IS_REPLAY) console.log('[REPLAY] eventId:', REPLAY_EVENT_ID, 'mode:', REPLAY_MODE, 'game:', REPLAY_GAME, 'version:', REPLAY_VERSION, 'amount:', REPLAY_AMOUNT);
 
 const CURRENCY_MAP = {
   USD:'$', CAD:'CA$', EUR:'€', GBP:'£', JPY:'¥', CNY:'¥',
@@ -370,7 +368,6 @@ const RGS = {
     if (res.balance && res.balance.amount != null) { balance = fromRGS(res.balance.amount); }
     const payout = res.round && res.round.payoutMultiplier;
     const roundActive = res.round && res.round.active;
-    if (payout > 0) console.log('[RGS] win:', payout, 'x bet');
     this._roundHasWin = (roundActive === true);
     this._payoutMultiplier = payout || 0;
     // Send betEvent AFTER play response confirms round is active
@@ -388,9 +385,6 @@ const RGS = {
         });
         this._rgsSpins = processed.spins;
         this._rgsMaxPayout = processed.totalPayout;
-        console.log('[RGS] processed', this._rgsSpins.length, 'spins from state,',
-          'scatter:', this._rgsSpins[0] && this._rgsSpins[0].scatterTrigger ? 'YES' : 'no',
-          'wilds:', this._rgsSpins[0] && this._rgsSpins[0].wilds ? this._rgsSpins[0].wilds.length : 0);
         // Extract base game board and apply to reel targets during spin
         if (this._rgsSpins.length > 0 && this._rgsSpins[0].board) {
           this._rgsBoard = this._rgsSpins[0].board;
@@ -487,10 +481,10 @@ function showRGSError(msg) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;';
   const title = document.createElement('div');
-  title.style.cssText = 'color:#ff4444;font-family:Georgia,serif;font-size:28px;font-weight:bold;margin-bottom:16px;';
+  title.style.cssText = "color:#ff4444;font-family:'Cherry Bomb One','Fredoka',sans-serif;font-size:28px;font-weight:bold;margin-bottom:16px;";
   title.textContent = 'CONNECTION ERROR';
   const body = document.createElement('div');
-  body.style.cssText = 'color:#cccccc;font-family:Georgia,serif;font-size:16px;text-align:center;max-width:500px;line-height:1.6;';
+  body.style.cssText = "color:#cccccc;font-family:'Cherry Bomb One','Fredoka',sans-serif;font-size:16px;text-align:center;max-width:500px;line-height:1.6;";
   body.textContent = msg;
   overlay.appendChild(title);
   overlay.appendChild(body);
@@ -519,7 +513,6 @@ async function loadBook(mode) {
     const resp = await fetch('book_' + mode + '.json?v=' + Date.now());
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     _books[mode] = await resp.json();
-    console.log('[BOOK] Loaded', mode, ':', _books[mode].length, 'entries');
   } catch(e) {
     console.error('[BOOK] Failed to load', mode, e);
     _books[mode] = [];
@@ -547,6 +540,7 @@ function processBookEntry(entry) {
              scatterTrigger: null, stickyWilds: null, fsUpdate: null, anticipation: [] };
   }
 
+  let _revealIdx = 0; // track reveal index: 0 = base game, 1+ = free spins
   for (const ev of entry.events) {
     switch (ev.type) {
       case 'reveal': {
@@ -559,14 +553,19 @@ function processBookEntry(entry) {
         // Extract visible 5x5 from 7-row padded board
         // Map book symbol names to frontend texture names
         const _symMap = { 'W': 'wild', 'SC': 'scatter' };
+        const _isFS = _revealIdx > 0; // first reveal is base game, rest are free spins
+        const _fsSyms = ['watermelon','grape','orange','cherry','plum','lemon','A','K','Q','J','10'];
         const board = ev.board || [];
         currentSpin.board = board.map(reel =>
           reel.slice(1, 6).map(cell => {
             const name = (typeof cell === 'object' && cell.name) ? cell.name : String(cell);
-            return _symMap[name] || name;
+            const mapped = _symMap[name] || name;
+            if (_isFS && mapped === 'scatter') return _fsSyms[Math.floor(Math.random() * _fsSyms.length)];
+            return mapped;
           })
         );
         currentSpin.anticipation = ev.anticipation || [];
+        _revealIdx++;
         break;
       }
       case 'expandingWild': {
@@ -931,6 +930,17 @@ for (const [key, url] of Object.entries(assetMap)) {
   await PIXI.Assets.load(url);
 }
 
+// Wait for custom fonts before building any text-heavy scenes
+await document.fonts.ready;
+
+// Pre-upload all loaded textures to the GPU so first render has zero stutter
+await app.renderer.prepare.upload(app.stage);
+
+// Pre-decode bg_base.png so the swap after splash dismiss is instant
+const _bgBaseImg = new Image();
+_bgBaseImg.src = 'assets/bg_base.png';
+const _bgBaseReady = _bgBaseImg.decode().catch(() => {});
+
 // ─────────────────────────────────────────────────────────────
 //  SPLASH / INTRO SCREEN
 // ─────────────────────────────────────────────────────────────
@@ -1138,7 +1148,7 @@ await new Promise((resolve) => {
     let fadeT = 0;
     const fadeFn = () => {
       fadeT += app.ticker.deltaMS; const fadeP = Math.min(fadeT / 400, 1); splash.alpha = 1 - fadeP;
-      if (fadeT >= 400) { app.ticker.remove(fadeFn); app.stage.removeChild(splash); splash.destroy({ children: true }); document.getElementById('bgImg').src = 'assets/bg_base.png'; screenDim.style.removeProperty('display'); screenDim.style.background = 'rgba(8,2,14,0.65)'; screenDim.style.display = 'none'; playSound('base_game_music'); resolve(); }
+      if (fadeT >= 400) { app.ticker.remove(fadeFn); app.stage.removeChild(splash); splash.destroy({ children: true }); document.getElementById('bgImg').src = _bgBaseImg.src; screenDim.style.removeProperty('display'); screenDim.style.background = 'rgba(8,2,14,0.65)'; screenDim.style.display = 'none'; playSound('base_game_music'); resolve(); }
     };
     app.ticker.add(fadeFn);
   });
@@ -1227,7 +1237,7 @@ let _turboBtn = null, _autoBtn = null, _autoPicker = null, _autoConfirm = null;
 let lastWinLines = [];
 
 function showToast(msg) {
-  const t = new PIXI.Text(msg, { fontFamily:'Georgia, serif', fontSize:20, fontWeight:'bold', fill:0xffffff,
+  const t = new PIXI.Text(msg, { fontFamily:"'Cherry Bomb One', 'Fredoka', sans-serif", fontSize:20, fontWeight:'bold', fill:0xffffff,
     stroke:0x3A0A0A, strokeThickness:4, dropShadow:true, dropShadowColor:0x000000, dropShadowBlur:6, dropShadowDistance:2 });
   t.anchor.set(0.5); t.x=BASE_W/2; t.y=BASE_H/2; t.alpha=0; app.stage.addChild(t);
   let f=0; const fn=()=>{ f++; if(f<10) t.alpha=f/10; else if(f<70) t.alpha=1;
@@ -1386,6 +1396,7 @@ const SPRITE_COUNT = ROWS + 2;
 const reelContainers = [];
 const reelSprites    = []; // [reel][spriteIndex]
 const reelBlur       = [];
+const reelBlurArr    = [];  // cached [blur] arrays to avoid per-frame allocation
 const reelState      = [];
 
 for (let r = 0; r < REELS; r++) {
@@ -1408,6 +1419,7 @@ for (let r = 0; r < REELS; r++) {
   blur.quality = 4;   // explicit quality — default varies by device
   rc.filters = null;  // no filter at rest = full native texture quality
   reelBlur.push(blur);
+  reelBlurArr.push([blur]);  // cached array — avoids allocation inside ticker
 
   layerReel.addChild(rc);
   reelContainers.push(rc);
@@ -1644,14 +1656,22 @@ for (let r = 0; r < REELS; r++) {
 {
   const logoTex = PIXI.Texture.from(assetMap['logo']);  // pre-loaded, width is valid
   const logo    = new PIXI.Sprite(logoTex);
-  const TARGET_W = 280;
-  logo.scale.set(TARGET_W / logoTex.width);
+  const TARGET_W = 350;
+  const logoBaseScale = TARGET_W / logoTex.width;
+  logo.scale.set(logoBaseScale);
   logo.anchor.set(0.5, 0.5);
   // Position to the right of the grid
   const gridRight = GRID_X + GRID_W;
-  logo.x = gridRight + (BASE_W - gridRight) / 2;  // centered in right margin
+  logo.x = gridRight + (BASE_W - gridRight) / 2 + 40;  // right of center in margin
   logo.y = GRID_Y + GRID_H * 0.3;                 // upper third of grid height
   layerUI.addChild(logo);
+  // Gentle breathing animation (~2s cycle)
+  let logoBreathT = 0;
+  app.ticker.add((dt) => {
+    logoBreathT += dt * 0.052;
+    const breath = 1 + Math.sin(logoBreathT) * 0.05;
+    logo.scale.set(logoBaseScale * breath);
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2100,14 +2120,14 @@ const BONUS_FS_SUPER    = 10;
 
   // Toggle label
   const toggleLabel = new PIXI.Text('', {
-    fontFamily: 'Fredoka, Georgia', fontSize: 14, fontWeight: 'bold', fill: 0xffffff,
+    fontFamily: 'Cherry Bomb One, Fredoka, sans-serif', fontSize: 14, fontWeight: 'bold', fill: 0xffffff,
   });
   toggleLabel.anchor.set(0.5);
   dcToggle.addChild(toggleLabel);
 
   // Status indicator text below toggle
   const dcStatus = new PIXI.Text('', {
-    fontFamily: 'Fredoka, Georgia', fontSize: 11, fill: 0xbbaa88,
+    fontFamily: 'Cherry Bomb One, Fredoka, sans-serif', fontSize: 11, fill: 0xbbaa88,
   });
   dcStatus.anchor.set(0.5); dcStatus.y = dcH / 2 - 12;
   dcCard.addChild(dcStatus);
@@ -2423,8 +2443,6 @@ function showBuyBonusModal() {
   modal._tickerFns.push(inFn);
 }
 
-// showBuyConfirmation is now handled internally by showBuyBonusModal._showConfirmation
-function showBuyConfirmation() {}
 
 function closeBuyBonus() {
   if (!buyBonusOverlay) return;
@@ -2786,7 +2804,7 @@ app.ticker.add((dt) => {
       const blurVal = rs.velocity * 0.5;
       if (blurVal > 2) {
         reelBlur[r].blurY = Math.min(blurVal, 18);
-        if (!rc.filters) rc.filters = [reelBlur[r]];
+        if (!rc.filters) rc.filters = reelBlurArr[r];
       } else {
         rc.filters = null;
       }
@@ -2794,11 +2812,12 @@ app.ticker.add((dt) => {
 
     // ── Recycle sprites — only during active (non-stopping) spin ──
     if (!rs.stopping) {
+      let topY = Infinity;
+      for (const s of sprites) { if (s.y < topY) topY = s.y; }
       for (const sp of sprites) {
         if (sp.y >= ROWS * CELL) {
-          let topY = Infinity;
-          for (const s of sprites) { if (s.y < topY) topY = s.y; }
           sp.y = topY - CELL;
+          topY = sp.y;
           sp.texture = T(weightedRandom(WEIGHTS));
           sp.width = SYM_SIZE; sp.height = SYM_SIZE;
           sp.rotation = 0;
@@ -2887,6 +2906,9 @@ function snapReel(r) {
     }
   }
 }
+
+// Pre-upload all game scene textures + blur shaders to GPU before first spin
+await app.renderer.prepare.upload(app.stage);
 
 // ─────────────────────────────────────────────────────────────
 //  SPIN CONTROL
@@ -3055,6 +3077,11 @@ function startSpin() {
           fsWilds.push({ reel: wr, mult: pickWildMultiplier(), _landedRow: wrow });
         }
       }
+      // DEBUG: check board before push
+      const _pushCounts = fsBoard.map(col => col.filter(c => c === 'wild').length);
+      if (_pushCounts.some(c => c > 1)) {
+        console.error('[ON-THE-FLY BUG] Board has >1 wild per reel before push!');
+      }
       _simSpins.push({
         board: fsBoard, wilds: fsWilds, wins: [], winAmount: 0,
         scatterTrigger: null, stickyWilds: [...wildReels.map(w=>({reel:w.reel,mult:w.mult})), ...fsWilds.filter(w => !lockedReels.includes(w.reel)).map(w=>({reel:w.reel,mult:w.mult}))],
@@ -3083,7 +3110,17 @@ function startSpin() {
       showToast('BOOK DATA ERROR');
       return;
     }
-    lastBoard = spinData.board;
+    lastBoard = spinData.board.map(col => [...col]); // DEEP COPY — never mutate spinData.board
+    // DEBUG: check if board is pre-corrupted with all wilds
+    if (inFS) {
+      // Check ORIGINAL spinData.board directly (not through lastBoard alias)
+      const origBoard = _simSpins[_simSpinIdx].board;
+      const wildCounts = lastBoard.map((col, r) => col.filter(c => c === WILD).length);
+      if (wildCounts.some(c => c === ROWS)) {
+        console.error('[WILD BUG] Board already ALL WILD at spin start! spinIdx:', _simSpinIdx,
+          'board ref same as prev?', _simSpinIdx > 1 && _simSpins[_simSpinIdx].board === _simSpins[_simSpinIdx-1].board);
+      }
+    }
   }
 
   // Strip expanding wild reels for demo/FS (RGS mode handles this in RGS.play callback)
@@ -3105,6 +3142,32 @@ function startSpin() {
     }
   }
 
+  // Strip sticky wild reels: book/RGS data has ALL cells as WILD (math engine's
+  // post-expansion view), but visually we need 1 wild → expand animation.
+  // Keep exactly 1 wild at a random row, replace rest with random FS symbols.
+  if (inFS && wildReels.length > 0) {
+    for (const wr of wildReels) {
+      let wildCount = 0;
+      for (let row = 0; row < ROWS; row++) {
+        if (lastBoard[wr.reel][row] === WILD) wildCount++;
+      }
+      if (wildCount > 1) {
+        const keepRow = Math.floor(Math.random() * ROWS);
+        for (let row = 0; row < ROWS; row++) {
+          if (row === keepRow) {
+            lastBoard[wr.reel][row] = WILD;
+          } else {
+            lastBoard[wr.reel][row] = weightedRandom(WEIGHTS_FS);
+          }
+        }
+      }
+    }
+  }
+
+  // ── DEBUG: trace wild state at spin start ──
+  if (inFS) {
+  }
+
   const now = Date.now();
   let spinDelay = 0;
 
@@ -3116,8 +3179,19 @@ function startSpin() {
       // Locked wild reel — spins normally but guaranteed to land Wild
       // Reset overlay so it re-expands after landing
       const ov = wildOverlays[r];
-      if (ov) { ov.visible = false; const bdg = ov._badge; if (bdg) bdg.visible = false; }
-      if (reelSprites[r]) reelSprites[r].forEach(sp => { sp.visible = true; });
+      if (ov) {
+        ov.visible = false;
+        const bdg = ov._badge; if (bdg) bdg.visible = false;
+      }
+      // Also hide the border graphic
+      const brd = layerWild.getChildByName('brd_' + r);
+      if (brd) brd.visible = false;
+      // Show sprites and clear stale WILD textures left by afterWilds() mutation
+      if (reelSprites[r]) reelSprites[r].forEach(sp => {
+        sp.visible = true;
+        sp.texture = T(weightedRandom(WEIGHTS_FS));
+        sp.width = SYM_SIZE; sp.height = SYM_SIZE;
+      });
       rs.spinning   = true;
       rs.stopping   = false;
       rs.stopped    = false;
@@ -3504,7 +3578,6 @@ async function onAllStopped() {
         _fsPreGenerated = RGS._rgsSpins.length > 1; // RGS returns all spins (base + FS) upfront
         _simMaxPayout = RGS._rgsMaxPayout;
         if (!inFS) _simSpinIdx = 0;
-        console.log('[RGS] synced', _simSpins.length, 'spins in onAllStopped');
         // Board and reel targets already set by RGS.play() callback (stripped wilds).
         // Do NOT re-snap here — that would overwrite with the raw post-expansion board.
       }
@@ -3547,6 +3620,10 @@ async function onAllStopped() {
     }
   }
 
+  // ── DEBUG: trace wild state at spin end ──
+  if (inFS) {
+  }
+
   // Wild expansion from spin data (now consistent for both modes)
   const newWilds = [];
   if (spinData && spinData.wilds && spinData.wilds.length > 0) {
@@ -3569,8 +3646,12 @@ async function onAllStopped() {
   // Sticky wild multiplier re-reveal: in FS, existing sticky wilds get fresh multipliers each spin
   // skipReels: Set of reel indices that were JUST expanded this spin — their mults are already locked
   const _revealStickyMults = (done, skipReels) => {
-    if (!inFS || !spinData || !spinData.stickyWilds || spinData.stickyWilds.length === 0) { done(); return; }
-    const stickyToReveal = spinData.stickyWilds.filter(sw =>
+    if (!inFS || wildReels.length === 0) { done(); return; }
+    // Use spinData.stickyWilds if available, otherwise fall back to wildReels
+    const stickySource = (spinData && spinData.stickyWilds && spinData.stickyWilds.length > 0)
+      ? spinData.stickyWilds
+      : wildReels.map(wr => ({ reel: wr.reel, mult: wr.mult }));
+    const stickyToReveal = stickySource.filter(sw =>
       wildReels.some(wr => wr.reel === sw.reel) &&
       !(skipReels && skipReels.has(sw.reel))  // skip wilds that just expanded — their mult is locked
     );
@@ -3580,21 +3661,63 @@ async function onAllStopped() {
     stickyToReveal.forEach((sw, idx) => {
       const ov = wildOverlays[sw.reel];
       if (!ov) { completed++; if (completed >= stickyToReveal.length) done(); return; }
-      // Make sure wild overlay + badge are visible
-      ov.visible = true;
-      if (reelSprites[sw.reel]) reelSprites[sw.reel].forEach(sp => { sp.visible = false; });
-      // Fill column with wilds visually
-      for (let row = 0; row < ROWS; row++) lastBoard[sw.reel][row] = WILD;
       const badge = ov._badge;
       if (!badge) { completed++; if (completed >= stickyToReveal.length) done(); return; }
-      // Small stagger per sticky wild
+      // Stagger: expand overlay with mask animation, then spin multiplier
       const delay = turboMode ? idx * 3 : idx * 10;
       setTimeout(() => {
         if (_spinGen !== thisGen) return;
-        _runMultSpinner(badge, sw.mult, thisGen, () => {
-          completed++;
-          if (completed >= stickyToReveal.length) done();
-        });
+        // Hide sprites
+        if (reelSprites[sw.reel]) reelSprites[sw.reel].forEach(sp => { sp.visible = false; });
+        // lastBoard wild fill deferred to afterWilds() which creates a safe copy
+        // Find wild position for expansion origin
+        let wildRow = 2;
+        for (let row = 0; row < ROWS; row++) {
+          if (wildReels.some(wr => wr.reel === sw.reel)) { wildRow = row; break; }
+        }
+        // Mask-based expansion
+        ov.pivot.set(0, 0);
+        ov.x = GRID_X + sw.reel * CELL;
+        ov.y = GRID_Y;
+        ov.scale.set(1, 1);
+        const revealMask = new PIXI.Graphics();
+        ov.addChild(revealMask);
+        ov.mask = revealMask;
+        ov.visible = true;
+        const originY = wildRow * CELL + CELL / 2;
+        let t = 0;
+        const expandFn = (edt) => {
+          if (_spinGen !== thisGen) {
+            ov.mask = ov.getChildAt(0);
+            if (ov.children.indexOf(revealMask) !== -1) ov.removeChild(revealMask);
+            app.ticker.remove(expandFn);
+            return;
+          }
+          t += edt;
+          const speed = turboMode ? 2.0 : 1.0;
+          const progress = Math.min(t / (18 / speed), 1);
+          const ease = 1 - Math.pow(1 - progress, 3);
+          const halfH = ease * (GRID_H / 2 + CELL);
+          const top = Math.max(0, originY - halfH);
+          const bottom = Math.min(GRID_H, originY + halfH);
+          revealMask.clear();
+          revealMask.beginFill(0xffffff);
+          revealMask.drawRect(0, top, SYM_SIZE, bottom - top);
+          revealMask.endFill();
+          if (progress >= 1) {
+            ov.mask = ov.getChildAt(0);
+            ov.removeChild(revealMask);
+            app.ticker.remove(expandFn);
+            const brd = layerWild.getChildByName('brd_' + sw.reel);
+            if (brd) brd.visible = true;
+            _runMultSpinner(badge, sw.mult, thisGen, () => {
+              completed++;
+              if (completed >= stickyToReveal.length) done();
+            });
+          }
+        };
+        app.ticker.add(expandFn);
+        playSound('wild_expand');
       }, delay * 16);
     });
   };
@@ -3611,22 +3734,15 @@ async function onAllStopped() {
         _revealStickyMults(() => { afterWilds(); }, newWildReelSet);
       }, thisGen);
     }, turboMode ? 0 : 500);
-  } else if (inFS && spinData && spinData.stickyWilds && spinData.stickyWilds.length > 0) {
-    // No new wilds, but sticky wilds need re-reveal
+  } else if (inFS && wildReels.length > 0) {
+    // No new wilds — just re-reveal sticky overlays via _revealStickyMults
+    // (which already has mask expansion + multiplier spinner built in).
+    // Brief pause so landed symbols are visible before expansion.
     const thisGen = _spinGen;
-    // Re-show sticky overlays first (they were hidden during spin)
-    for (const sw of spinData.stickyWilds) {
-      const ov = wildOverlays[sw.reel];
-      if (ov) {
-        ov.visible = true;
-        if (reelSprites[sw.reel]) reelSprites[sw.reel].forEach(sp => { sp.visible = false; });
-        for (let row = 0; row < ROWS; row++) lastBoard[sw.reel][row] = WILD;
-      }
-    }
     setTimeout(() => {
       if (_spinGen !== thisGen) return;
       _revealStickyMults(() => { afterWilds(); });
-    }, turboMode ? 0 : 300);
+    }, turboMode ? 50 : 350);
   } else {
     afterWilds();
   }
@@ -3733,12 +3849,20 @@ function showWinCelebration(winAmount, onComplete) {
   if (!finalTier) { onComplete(); return; }
 
   _winCelebrationActive = true;
+  paylineLayer.visible = false;  // hide win line frames behind celebration
+  const _FONT = "'Cherry Bomb One', 'Fredoka', sans-serif";
 
-  // ── Full-viewport dark overlay (DOM) ──
-  const winDimEl = document.createElement('div');
-  winDimEl.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;background:rgba(10,0,0,0.7);z-index:3;transition:opacity 0.3s;';
-  document.body.appendChild(winDimEl);
-  app.view.style.zIndex = '4';
+  // ── Tier-specific config ──
+  const tierIdx = WIN_TIERS.indexOf(finalTier);
+  const tierConfig = [
+    { sprinkles: 20, sparkles: 8,  bursts: 0, shake: 0, glowPulse: 0.15, framePulse: 0,    rainbowTint: false, countMs: 1500 },
+    { sprinkles: 40, sparkles: 15, bursts: 1, shake: 3, glowPulse: 0.25, framePulse: 0,    rainbowTint: false, countMs: 2000 },
+    { sprinkles: 65, sparkles: 25, bursts: 2, shake: 5, glowPulse: 0.40, framePulse: 0,    rainbowTint: false, countMs: 2500 },
+    { sprinkles: 80, sparkles: 35, bursts: 3, shake: 7, glowPulse: 0.55, framePulse: 0.03, rainbowTint: true,  countMs: 3000 },
+  ][tierIdx] || { sprinkles: 20, sparkles: 8, bursts: 0, shake: 0, glowPulse: 0.15, framePulse: 0, rainbowTint: false, countMs: 1500 };
+
+  // No dark overlay — celebration appears directly on bright game view
+  const winDimEl = null;
 
   try {
 
@@ -3746,264 +3870,352 @@ function showWinCelebration(winAmount, onComplete) {
   c.interactive = true;
   c.hitArea = new PIXI.Rectangle(0, 0, BASE_W, BASE_H);
   app.stage.addChild(c);
+  const _celebGfx = [];
 
-  // ── Light rays (EPIC+ tiers) ──
-  const raysContainer = new PIXI.Container();
-  raysContainer.x = BASE_W / 2;
-  raysContainer.y = BASE_H / 2;
-  raysContainer.alpha = 0;
-  c.addChild(raysContainer);
-  const _celebGfx = []; // track pooled Graphics for release before destroy
-  if (finalTier.rays) {
-    const RAY_COUNT = 12;
-    for (let i = 0; i < RAY_COUNT; i++) {
-      const ray = getGfx(); _celebGfx.push(ray);
-      const angle = (i / RAY_COUNT) * Math.PI * 2;
-      const len = 600;
-      const spread = 0.08;
-      ray.beginFill(0xffd700, 0.15);
-      ray.moveTo(0, 0);
-      ray.lineTo(Math.cos(angle - spread) * len, Math.sin(angle - spread) * len);
-      ray.lineTo(Math.cos(angle + spread) * len, Math.sin(angle + spread) * len);
-      ray.closePath();
-      ray.endFill();
-      ray.blendMode = PIXI.BLEND_MODES.ADD;
-      raysContainer.addChild(ray);
-    }
-  }
 
-  // ── Win frame sprite (tinted per tier) ──
-  const frameTex = PIXI.Texture.from(assetMap['win_frame']);
-  const frame = new PIXI.Sprite(frameTex);
-  const frameScale = 0.35;
-  frame.scale.set(0);
-  frame.anchor.set(0.5);
-  frame.x = BASE_W / 2;
-  frame.y = BASE_H / 2 + 50;
-  frame.alpha = 0;
-  c.addChild(frame);
+  // ── Ornate candy plaque/banner ──
+  const FRAME_W = 720, FRAME_H = 320;
+  const frameContainer = new PIXI.Container();
+  frameContainer.x = BASE_W / 2;
+  frameContainer.y = BASE_H / 2;
+  frameContainer.scale.set(0.3);
+  frameContainer.alpha = 0;
+  c.addChild(frameContainer);
 
-  // ── Frame glow (additive duplicate behind frame) ──
-  const frameGlow = new PIXI.Sprite(frameTex);
-  frameGlow.scale.set(0);
-  frameGlow.anchor.set(0.5);
-  frameGlow.x = BASE_W / 2;
-  frameGlow.y = BASE_H / 2 + 50;
-  frameGlow.alpha = 0;
-  frameGlow.blendMode = PIXI.BLEND_MODES.ADD;
-  frameGlow.tint = WIN_TIERS[0].tint;
-  c.addChildAt(frameGlow, c.children.indexOf(frame));
 
-  // ── Tier label (above frame) ──
+
+  // Main plaque body — deep pink-to-magenta gradient (simulated with layers)
+  const plaqueBase = getGfx(); _celebGfx.push(plaqueBase);
+  plaqueBase.beginFill(0x6b1040, 0.95);
+  plaqueBase.drawRoundedRect(-FRAME_W/2, -FRAME_H/2, FRAME_W, FRAME_H, 18);
+  plaqueBase.endFill();
+  frameContainer.addChild(plaqueBase);
+
+  // Gradient overlay — lighter at top, darker at bottom (glazed chocolate bar feel)
+  const gradTop = getGfx(); _celebGfx.push(gradTop);
+  gradTop.beginFill(0xcc3377, 0.5);
+  gradTop.drawRoundedRect(-FRAME_W/2 + 4, -FRAME_H/2 + 4, FRAME_W - 8, FRAME_H * 0.45, 14);
+  gradTop.endFill();
+  frameContainer.addChild(gradTop);
+
+  const gradBot = getGfx(); _celebGfx.push(gradBot);
+  gradBot.beginFill(0x3a0520, 0.4);
+  gradBot.drawRoundedRect(-FRAME_W/2 + 4, FRAME_H * 0.05, FRAME_W - 8, FRAME_H * 0.45, 14);
+  gradBot.endFill();
+  frameContainer.addChild(gradBot);
+
+  // Glossy highlight strip across top (like a glazed surface)
+  const glossy = getGfx(); _celebGfx.push(glossy);
+  glossy.beginFill(0xffffff, 0.12);
+  glossy.drawRoundedRect(-FRAME_W/2 + 20, -FRAME_H/2 + 8, FRAME_W - 40, FRAME_H * 0.18, 10);
+  glossy.endFill();
+  frameContainer.addChild(glossy);
+
+
+  // Inner center radiance
+  const innerGlow = getGfx(); _celebGfx.push(innerGlow);
+  innerGlow.beginFill(0xff69b4, 0.06);
+  innerGlow.drawEllipse(0, 10, FRAME_W * 0.35, FRAME_H * 0.3);
+  innerGlow.endFill();
+  innerGlow.blendMode = PIXI.BLEND_MODES.ADD;
+  frameContainer.addChild(innerGlow);
+
+  // Corner candy gems (faceted look)
+  const corners = [[-1,-1],[1,-1],[-1,1],[1,1]];
+  const gemColors = [0xff6b9d, 0x4ecdc4, 0xffe66d, 0xa78bfa];
+  corners.forEach(([cx, cy], idx) => {
+    const gem = getGfx(); _celebGfx.push(gem);
+    const gx = cx * (FRAME_W/2 - 2), gy = cy * (FRAME_H/2 - 2);
+    // Gem body
+    gem.beginFill(gemColors[idx], 0.9);
+    gem.drawCircle(gx, gy, 10);
+    gem.endFill();
+    // Gem border
+    gem.lineStyle(1.5, 0xffffff, 0.5);
+    gem.drawCircle(gx, gy, 10);
+    gem.lineStyle(0);
+    // Gem highlight
+    gem.beginFill(0xffffff, 0.5);
+    gem.drawCircle(gx - 3, gy - 3, 3.5);
+    gem.endFill();
+    frameContainer.addChild(gem);
+  });
+
+
+  // Top candy ornament (lollipop swirl)
+  const lollipop = getGfx(); _celebGfx.push(lollipop);
+  // Stick
+  lollipop.beginFill(0xffeedd, 0.8);
+  lollipop.drawRect(-2, -FRAME_H/2 - 28, 4, 22);
+  lollipop.endFill();
+  // Candy circle
+  lollipop.beginFill(0xff6b9d, 0.9);
+  lollipop.drawCircle(0, -FRAME_H/2 - 38, 14);
+  lollipop.endFill();
+  // Swirl lines
+  lollipop.lineStyle(2, 0xffffff, 0.4);
+  lollipop.arc(0, -FRAME_H/2 - 38, 6, 0, Math.PI * 1.2);
+  lollipop.lineStyle(1.5, 0xff3366, 0.5);
+  lollipop.arc(0, -FRAME_H/2 - 38, 10, Math.PI * 0.5, Math.PI * 1.8);
+  lollipop.lineStyle(0);
+  // Highlight
+  lollipop.beginFill(0xffffff, 0.35);
+  lollipop.drawCircle(-4, -FRAME_H/2 - 42, 4);
+  lollipop.endFill();
+  frameContainer.addChild(lollipop);
+
+  // ── Tier label (upper third of frame) ──
   const firstTier = WIN_TIERS[0];
   const tierGlow = new PIXI.Text(firstTier.label, {
-    fontFamily: 'Georgia, serif', fontSize: firstTier.fontSize, fontWeight: 'bold',
+    fontFamily: _FONT, fontSize: firstTier.fontSize, fontWeight: 'bold',
     fill: firstTier.glow,
-    stroke: firstTier.glow, strokeThickness: 16,
-    letterSpacing: 6,
+    stroke: firstTier.glow, strokeThickness: 18,
+    letterSpacing: 8,
   });
   tierGlow.anchor.set(0.5);
-  tierGlow.x = BASE_W / 2;
-  tierGlow.y = BASE_H / 2 - 60;
+  tierGlow.x = 0;
+  tierGlow.y = -FRAME_H * 0.22;
   tierGlow.alpha = 0;
   tierGlow.blendMode = PIXI.BLEND_MODES.ADD;
-  c.addChild(tierGlow);
+  frameContainer.addChild(tierGlow);
 
   const tierLabel = new PIXI.Text(firstTier.label, {
-    fontFamily: 'Georgia, serif', fontSize: firstTier.fontSize, fontWeight: 'bold',
-    fill: firstTier.color,
+    fontFamily: _FONT, fontSize: firstTier.fontSize, fontWeight: 'bold',
+    fill: [0xffe57f, 0xff9500],
+    fillGradientType: PIXI.TEXT_GRADIENT.LINEAR_VERTICAL,
     fillGradientStops: [0, 1],
-    stroke: firstTier.stroke, strokeThickness: 7,
-    dropShadow: true, dropShadowColor: 0x000000, dropShadowBlur: 14, dropShadowDistance: 3,
+    stroke: 0x5a2e00, strokeThickness: 6,
+    dropShadow: true, dropShadowColor: 0x3a1d00, dropShadowBlur: 6, dropShadowDistance: 4, dropShadowAlpha: 0.8,
     letterSpacing: 6,
   });
   tierLabel.anchor.set(0.5);
-  tierLabel.x = BASE_W / 2;
-  tierLabel.y = BASE_H / 2 - 60;
+  tierLabel.x = 0;
+  tierLabel.y = -FRAME_H * 0.22;
   tierLabel.scale.set(0);
-  c.addChild(tierLabel);
+  frameContainer.addChild(tierLabel);
 
-  // ── Win counter ──
+  // ── Win counter (lower third of frame) ──
   const counterText = new PIXI.Text(formatMoney(0), {
-    fontFamily: 'Georgia, serif', fontSize: firstTier.amountSize, fontWeight: 'bold',
+    fontFamily: _FONT, fontSize: firstTier.amountSize, fontWeight: 'bold',
     fill: [0xffffff, 0xffd700],
+    fillGradientType: PIXI.TEXT_GRADIENT.LINEAR_VERTICAL,
     fillGradientStops: [0, 1],
-    stroke: 0x1a0a00, strokeThickness: 5,
-    dropShadow: true, dropShadowColor: 0x000000, dropShadowBlur: 10, dropShadowDistance: 3,
+    stroke: 0x5a2e00, strokeThickness: 7,
+    dropShadow: true, dropShadowColor: 0x3a1d00, dropShadowBlur: 8, dropShadowDistance: 5, dropShadowAlpha: 0.9,
+    letterSpacing: 4,
   });
   counterText.anchor.set(0.5);
-  counterText.x = BASE_W / 2;
-  counterText.y = BASE_H / 2 + 50;
+  counterText.x = 0;
+  counterText.y = FRAME_H * 0.18;
   counterText.alpha = 0;
-  c.addChild(counterText);
+  frameContainer.addChild(counterText);
 
-  // ── Sparkle particles ──
+  // ── Amount flash glow (pre-rendered, used on count-up finish) ──
+  const amountFlash = new PIXI.Sprite(PIXI.Texture.from('assets/glow_soft.png'));
+  amountFlash.anchor.set(0.5);
+  amountFlash.x = 0;
+  amountFlash.y = FRAME_H * 0.18;
+  amountFlash.scale.set(1.2);
+  amountFlash.alpha = 0;
+  amountFlash.blendMode = PIXI.BLEND_MODES.ADD;
+  amountFlash.tint = 0xffd700;
+  frameContainer.addChild(amountFlash);
+
+  // ── "TAP ANYWHERE TO CONTINUE" ──
+  const tapText = new PIXI.Text('TAP ANYWHERE TO CONTINUE', {
+    fontFamily: "'Fredoka', Arial, sans-serif", fontSize: 16, fill: 0xd4a574, letterSpacing: 3, fontWeight: 'bold',
+  });
+  tapText.anchor.set(0.5);
+  tapText.x = 0;
+  tapText.y = FRAME_H * 0.42 + 20;
+  tapText.alpha = 0;
+  frameContainer.addChild(tapText);
+
+  // ── Sprinkles shower (tiny candy-colored rectangles tumbling down) ──
+  const sprinkles = [];
+  const sprinkleColors = [0xff6b9d, 0x7dd3fc, 0xffe66d, 0x6ee7b7, 0xffffff, 0xa78bfa, 0xff8a65];
+  const SPRINKLE_COUNT = _isMobile ? Math.floor(tierConfig.sprinkles * 0.5) : tierConfig.sprinkles;
+  for (let i = 0; i < SPRINKLE_COUNT; i++) {
+    const sp = getGfx(); _celebGfx.push(sp);
+    const w = 2 + Math.random() * 3, h = 6 + Math.random() * 5;
+    sp.beginFill(sprinkleColors[Math.floor(Math.random() * sprinkleColors.length)], 0.85);
+    sp.drawRoundedRect(-w/2, -h/2, w, h, 1);
+    sp.endFill();
+    // Spread across screen edges, avoiding center frame area
+    const side = Math.random();
+    if (side < 0.3) sp.x = Math.random() * BASE_W * 0.25;
+    else if (side < 0.6) sp.x = BASE_W * 0.75 + Math.random() * BASE_W * 0.25;
+    else sp.x = Math.random() * BASE_W;
+    sp.y = -10 - Math.random() * 400;
+    sp._vy = 0.8 + Math.random() * 1.2;
+    sp._vx = (Math.random() - 0.5) * 0.8;
+    sp._rotSpeed = (Math.random() - 0.5) * 0.08;
+    sp._delay = Math.random() * 60;
+    sp._age = 0;
+    sp.rotation = Math.random() * Math.PI;
+    sp.alpha = 0;
+    sprinkles.push(sp);
+    c.addChild(sp);
+  }
+
+  // ── Sugar sparkles (twinkling star/diamond particles, white + gold) ──
   const sparkles = [];
-  const SPARKLE_COUNT = _isMobile ? 20 : 40;
+  const SPARKLE_COUNT = _isMobile ? Math.floor(tierConfig.sparkles * 0.6) : tierConfig.sparkles;
   for (let i = 0; i < SPARKLE_COUNT; i++) {
     const sp = getGfx(); _celebGfx.push(sp);
-    const sz = 1.5 + Math.random() * 3;
-    sp.beginFill(Math.random() > 0.5 ? 0xffd700 : 0xffffff, 0.9);
-    sp.drawStar ? sp.drawStar(0, 0, 4, sz, sz * 0.4) : sp.drawCircle(0, 0, sz);
+    const sz = 1.5 + Math.random() * 2.5;
+    const isGold = Math.random() > 0.6;
+    sp.beginFill(isGold ? 0xffd700 : 0xffffff, 0.9);
+    if (sp.drawStar) sp.drawStar(0, 0, 4, sz, sz * 0.35);
+    else sp.drawCircle(0, 0, sz);
     sp.endFill();
     sp.blendMode = PIXI.BLEND_MODES.ADD;
     sp.x = Math.random() * BASE_W;
     sp.y = Math.random() * BASE_H;
-    sp._baseX = sp.x;
-    sp._baseY = sp.y;
-    sp._speed = 0.3 + Math.random() * 0.7;
     sp._phase = Math.random() * Math.PI * 2;
-    sp._drift = (Math.random() - 0.5) * 0.5;
+    sp._twinkleSpeed = 0.04 + Math.random() * 0.06;
+    sp._lifeOffset = Math.random() * 100;
     sp.alpha = 0;
     sparkles.push(sp);
     c.addChild(sp);
   }
 
-  // ── Gold coins with bounce physics ──
-  const coins = [];
-  const COIN_COUNT = _isMobile ? Math.floor(finalTier.coins * 0.4) : finalTier.coins;
-  const GROUND_Y = BASE_H - 40;
-  for (let i = 0; i < COIN_COUNT; i++) {
-    const coin = getGfx(); _celebGfx.push(coin);
-    const r = 4 + Math.random() * 6;
-    coin.beginFill(0xb8860b, 0.9);
-    coin.drawEllipse(0, 2, r, r);
-    coin.endFill();
-    coin.beginFill(0xffd700, 1);
-    coin.drawEllipse(0, 0, r, r);
-    coin.endFill();
-    coin.lineStyle(1, 0xb8860b, 0.5);
-    coin.drawCircle(0, 0, r * 0.6);
-    coin.lineStyle(0);
-    coin.beginFill(0xffffff, 0.35);
-    coin.drawEllipse(-r * 0.25, -r * 0.3, r * 0.2, r * 0.15);
-    coin.endFill();
-    coin.x = BASE_W * 0.15 + Math.random() * BASE_W * 0.7;
-    coin.y = -30 - Math.random() * 500;
-    coin._r = r;
-    coin._vy = 0.5 + Math.random() * 1.5;
-    coin._vx = (Math.random() - 0.5) * 2;
-    coin._gravity = 0.12 + Math.random() * 0.06;
-    coin._bounce = 0.4 + Math.random() * 0.25;
-    coin._spin = (Math.random() - 0.5) * 0.12;
-    coin._flipPhase = Math.random() * Math.PI * 2;
-    coin._flipSpeed = 0.04 + Math.random() * 0.06;
-    coin._delay = Math.random() * 60;
-    coin._age = 0;
-    coin.alpha = 0;
-    coins.push(coin);
-    c.addChild(coin);
+  // ── Candy pop bursts (gumball circles that explode outward from center) ──
+  const candyPops = [];
+  const burstColors = [0xff6b9d, 0x4ecdc4, 0xffe66d, 0xa78bfa, 0xff8a65, 0x7dd3fc, 0xf472b6];
+  const BURST_COUNT = tierConfig.bursts;
+  for (let b = 0; b < BURST_COUNT; b++) {
+    // Each burst: 8-12 small circles
+    const burstSize = 8 + Math.floor(Math.random() * 5);
+    // Burst origin: center for first, sides for additional
+    let originX = BASE_W / 2, originY = BASE_H / 2;
+    if (b === 1) { originX = BASE_W * 0.15; originY = BASE_H * 0.4; }
+    if (b === 2) { originX = BASE_W * 0.85; originY = BASE_H * 0.4; }
+    for (let i = 0; i < burstSize; i++) {
+      const pop = getGfx(); _celebGfx.push(pop);
+      const r = 3 + Math.random() * 5;
+      const color = burstColors[Math.floor(Math.random() * burstColors.length)];
+      pop.beginFill(color, 0.9);
+      pop.drawCircle(0, 0, r);
+      pop.endFill();
+      // Small highlight
+      pop.beginFill(0xffffff, 0.3);
+      pop.drawCircle(-r * 0.25, -r * 0.25, r * 0.3);
+      pop.endFill();
+      pop.x = originX;
+      pop.y = originY;
+      const angle = (i / burstSize) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+      const speed = 3 + Math.random() * 5;
+      pop._vx = Math.cos(angle) * speed;
+      pop._vy = Math.sin(angle) * speed - 2;
+      pop._gravity = 0.12 + Math.random() * 0.06;
+      pop._delay = b * 15 + Math.random() * 5;
+      pop._age = 0;
+      pop._life = 60 + Math.random() * 40;
+      pop.alpha = 0;
+      candyPops.push(pop);
+      c.addChild(pop);
+    }
   }
 
-  // ── "TAP TO CONTINUE" ──
-  const tapText = new PIXI.Text('TAP ANYWHERE TO SKIP', {
-    fontFamily: 'Arial', fontSize: 14, fill: 0x997755, letterSpacing: 3,
-  });
-  tapText.anchor.set(0.5);
-  tapText.x = BASE_W / 2;
-  tapText.y = BASE_H / 2 + 160;
-  tapText.alpha = 0;
-  c.addChild(tapText);
-
-  // ── Flash layer ──
-  const flash = getGfx(); _celebGfx.push(flash);
-  flash.beginFill(0xfff4cc, 1);
-  flash.drawRect(-500, -500, BASE_W + 1000, BASE_H + 1000);
-  flash.endFill();
-  flash.alpha = 0;
-  c.addChild(flash);
 
   // ── State ──
   let ticks = 0, currentCount = 0, currentTierIdx = 0;
   let skipped = false, closing = false, closeTicks = 0;
-  let holdTicks = 0, holding = false;
+  let holdTicks = 0, holding = false, countFinished = false;
   let shakeIntensity = 0;
-  const countDuration = turboMode ? Math.ceil(finalTier.duration * 0.4) : finalTier.duration;
-  const _introLen = turboMode ? 15 : 35;
-  const _holdLen = turboMode ? 30 : 60;
-  const _closeLen = turboMode ? 10 : 22;
-  const _countStart = turboMode ? 8 : 18;
+  const countDuration = turboMode ? Math.ceil(tierConfig.countMs / 33) : Math.ceil(tierConfig.countMs / 16.67);
+  const _introLen = turboMode ? 18 : 40;
+  const _holdLen = turboMode ? 40 : 80;
+  const _closeLen = turboMode ? 12 : 20;
+  const _countStart = turboMode ? 10 : 22;
   const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
+  // Auto-dismiss timer for auto-spin
+  let autoDismissTimer = null;
+  if (autoSpins !== 0) {
+    autoDismissTimer = setTimeout(() => { if (!closing) startClose(); }, turboMode ? 1500 : 3000);
+  }
+
   // Play tier sound on entrance
-  playSound(firstTier.sound);
+  playSound(finalTier.sound);
   playSound('coin_count');
 
   function updateTierVisuals(idx) {
     const t = WIN_TIERS[idx];
     tierLabel.text = t.label;
     tierLabel.style.fontSize = t.fontSize;
-    tierLabel.style.fill = t.color;
-    tierLabel.style.stroke = t.stroke;
+    tierLabel.style.fill = [0xffe57f, 0xff9500];
+    tierLabel.style.stroke = 0x5a2e00;
     tierGlow.text = t.label;
     tierGlow.style.fontSize = t.fontSize;
     tierGlow.style.fill = t.glow;
     tierGlow.style.stroke = t.glow;
-    frameGlow.tint = t.tint;
     counterText.style.fontSize = t.amountSize;
-    // Play escalation sound
     if (idx > 0) playSound(t.sound);
   }
   function triggerShake(v) { shakeIntensity = v; }
-  function triggerFlash(a) { flash.alpha = a || 0.4; }
 
   const tickFn = (dt) => {
     ticks += dt;
 
     // ── Intro: dramatic entrance ──
     if (ticks <= _introLen) {
-      // Initial flash burst
-      if (ticks <= 3) flash.alpha = Math.max(0, 0.6 - ticks * 0.2);
-
-      // Frame scales up with elastic overshoot
-      const frameStart = _introLen * 0.15;
+      // Frame scales up with elastic bounce: 0.3 → 1.05 → 1.0
+      const frameStart = _introLen * 0.1;
       if (ticks > frameStart) {
-        const fp = Math.min((ticks - frameStart) / (_introLen * 0.5), 1);
-        const elastic = fp < 0.7
-          ? (fp / 0.7) * 1.15
-          : 1.15 - (fp - 0.7) / 0.3 * 0.15;
-        frame.scale.set(frameScale * elastic);
-        frame.alpha = Math.min(fp * 2, 1);
-        frameGlow.scale.set(frameScale * elastic * 1.08);
-        frameGlow.alpha = Math.min(fp * 0.3, 0.2);
+        const fp = Math.min((ticks - frameStart) / (_introLen * 0.55), 1);
+        let elastic;
+        if (fp < 0.6) elastic = (fp / 0.6) * 1.05;
+        else if (fp < 0.8) elastic = 1.05 - ((fp - 0.6) / 0.2) * 0.08;
+        else elastic = 0.97 + ((fp - 0.8) / 0.2) * 0.03;
+        frameContainer.scale.set(elastic);
+        frameContainer.alpha = Math.min(fp * 2.5, 1);
       }
 
-      // Label scale bounce (starts after frame)
-      const labelStart = _introLen * 0.3;
+      // Tier label drops from above with bounce
+      const labelStart = _introLen * 0.25;
       if (ticks > labelStart) {
-        const lp = Math.min((ticks - labelStart) / (_introLen * 0.5), 1);
-        const overshoot = lp < 0.5
-          ? (lp / 0.5) * 1.3
-          : 1.3 - (lp - 0.5) / 0.5 * 0.3;
-        tierLabel.scale.set(overshoot);
-        tierGlow.scale.set(overshoot);
-        tierGlow.alpha = Math.min(lp * 0.5, 0.35);
+        const lp = Math.min((ticks - labelStart) / (_introLen * 0.45), 1);
+        // Bounce ease
+        let bounce;
+        if (lp < 0.5) bounce = (lp / 0.5);
+        else if (lp < 0.7) bounce = 1 + (1 - ((lp - 0.5) / 0.2)) * 0.15;
+        else if (lp < 0.85) bounce = 1.15 - ((lp - 0.7) / 0.15) * 0.15;
+        else bounce = 1.0;
+        tierLabel.scale.set(bounce);
+        tierGlow.scale.set(bounce);
+        // Drop from above: y offset
+        const dropOffset = (1 - Math.min(lp * 1.5, 1)) * -80;
+        tierLabel.y = -FRAME_H * 0.22 + dropOffset;
+        tierGlow.y = -FRAME_H * 0.22 + dropOffset;
+        tierGlow.alpha = Math.min(lp * 0.6, 0.4);
       }
 
       // Counter + tap fade in
-      counterText.alpha = Math.max(0, Math.min((ticks - _introLen * 0.5) / (_introLen * 0.3), 1));
-      tapText.alpha = Math.max(0, Math.min((ticks - _introLen * 0.7) / (_introLen * 0.3), 0.5));
+      const counterFade = Math.max(0, Math.min((ticks - _introLen * 0.5) / (_introLen * 0.3), 1));
+      counterText.alpha = counterFade;
+      tapText.alpha = Math.max(0, Math.min((ticks - _introLen * 0.75) / (_introLen * 0.25), 0.6));
 
-      // Rays fade in (EPIC+)
-      if (finalTier.rays) {
-        raysContainer.alpha = Math.max(0, Math.min((ticks - _introLen * 0.4) / (_introLen * 0.4), 0.6));
+      // Entry shake
+      if (ticks > _introLen * 0.2 && ticks < _introLen * 0.4 && tierConfig.shake > 0) {
+        shakeIntensity = tierConfig.shake;
       }
     } else {
-      frame.alpha = 1;
-      frame.scale.set(frameScale);
+      frameContainer.scale.set(1);
+      frameContainer.alpha = 1;
       counterText.alpha = 1;
-      tapText.alpha = 0.5;
-      if (finalTier.rays) raysContainer.alpha = 0.6;
+      tapText.alpha = 0.6;
     }
 
-    // ── Count up ──
+    // ── Count up with ease-out cubic ──
     if (!skipped && !holding && ticks > _countStart) {
       const countProgress = Math.min((ticks - _countStart) / countDuration, 1);
       currentCount = easeOutCubic(countProgress) * winAmount;
       counterText.text = formatMoney(currentCount);
 
-      // Counter scale pulse during count
-      const countPulse = 1 + Math.sin(ticks * 0.3) * 0.02;
+      // Subtle scale pulse during counting
+      const countPulse = 1 + Math.sin(ticks * 0.25) * 0.015;
       counterText.scale.set(countPulse);
 
       // Check tier escalation
@@ -4016,99 +4228,129 @@ function showWinCelebration(winAmount, onComplete) {
         currentTierIdx = newTierIdx;
         updateTierVisuals(newTierIdx);
         triggerShake(WIN_TIERS[newTierIdx].shake);
-        triggerFlash(0.5);
-        tierLabel.scale.set(1.4);
-        tierGlow.scale.set(1.4);
+        tierLabel.scale.set(1.35);
+        tierGlow.scale.set(1.35);
       }
 
-      // Count finished → hold phase
-      if (countProgress >= 1 && !holding && !closing) {
+      // Count finished → amount punch + hold
+      if (countProgress >= 1 && !countFinished) {
+        countFinished = true;
         holding = true;
         holdTicks = 0;
-        // Final amount scale punch
-        counterText.scale.set(1.2);
-        triggerShake(finalTier.shake * 0.5);
+        // Amount punch: scale 1.0 → 1.2 → 1.0 elastic
+        counterText.scale.set(1.25);
+        // Brief bright flash behind amount
+        amountFlash.alpha = 0.6;
+        triggerShake(tierConfig.shake * 0.4);
+        playSound('multiplier_hit');
       }
     }
 
-    // ── Hold phase (show final amount before closing) ──
+    // ── Hold phase ──
     if (holding && !closing) {
       holdTicks += dt;
-      // Settle counter scale back
-      const settle = Math.min(holdTicks / 12, 1);
-      counterText.scale.set(1.2 - settle * 0.2);
+      // Settle counter scale back with elastic
+      const settle = Math.min(holdTicks / 18, 1);
+      const settleEase = settle < 0.5
+        ? 1.25 - settle * 0.6
+        : 0.95 + (1 - settle) * 0.1;
+      counterText.scale.set(settleEase);
       if (holdTicks >= _holdLen) startClose();
+    }
+
+    // ── Amount flash fade ──
+    if (amountFlash.alpha > 0) {
+      amountFlash.alpha *= 0.92;
+      if (amountFlash.alpha < 0.01) amountFlash.alpha = 0;
     }
 
     // ── Label idle pulse ──
     if (ticks > _introLen && !closing) {
-      const pulse = 1 + Math.sin(ticks * 0.05) * 0.03;
-      if (!holding || holdTicks > 5) {
+      const pulse = 1 + Math.sin(ticks * 0.05) * 0.025;
+      if (!holding || holdTicks > 8) {
         tierLabel.scale.set(pulse);
         tierGlow.scale.set(pulse);
+        tierLabel.y = -FRAME_H * 0.22;
+        tierGlow.y = -FRAME_H * 0.22;
       }
-      tierGlow.alpha = 0.2 + Math.sin(ticks * 0.08) * 0.12;
-      // Frame glow pulse
-      frameGlow.alpha = 0.12 + Math.sin(ticks * 0.06) * 0.08;
+      tierGlow.alpha = 0.2 + Math.sin(ticks * 0.08) * 0.15;
     }
 
-    // ── Light rays rotation (EPIC+) ──
-    if (finalTier.rays && raysContainer.alpha > 0) {
-      raysContainer.rotation += 0.003 * dt;
+    // ── SENSATIONAL rainbow tint cycling ──
+    if (tierConfig.rainbowTint && !closing) {
+      const hueShift = (ticks * 0.015) % 1;
+      const r = Math.floor((Math.sin(hueShift * Math.PI * 2) * 0.5 + 0.5) * 255);
+      const g = Math.floor((Math.sin(hueShift * Math.PI * 2 + 2.094) * 0.3 + 0.5) * 255);
+      const b = Math.floor((Math.sin(hueShift * Math.PI * 2 + 4.189) * 0.3 + 0.5) * 255);
+      // Frame scale pulse for SENSATIONAL
+      if (tierConfig.framePulse > 0 && ticks > _introLen) {
+        const framePulse = 1 + Math.sin(ticks * 0.052) * tierConfig.framePulse;
+        if (!holding) frameContainer.scale.set(framePulse);
+      }
     }
 
-    // ── Sparkle particles ──
+    // ── Sprinkles shower ──
+    sprinkles.forEach(sp => {
+      sp._age += dt;
+      if (sp._age < sp._delay) return;
+      sp.alpha = 0.85;
+      sp.y += sp._vy * dt;
+      sp.x += sp._vx * dt;
+      sp.rotation += sp._rotSpeed * dt;
+      if (sp.y > BASE_H + 20) { sp.y = -15; sp.x = Math.random() * BASE_W; }
+      if (closing) sp.alpha *= Math.max(0, 1 - closeTicks / _closeLen);
+    });
+
+    // ── Sugar sparkles (twinkle in/out) ──
     sparkles.forEach(sp => {
-      if (ticks < _introLen * 0.5) { sp.alpha = 0; return; }
-      sp._phase += sp._speed * 0.05 * dt;
-      sp.alpha = 0.3 + Math.sin(sp._phase) * 0.4;
-      sp.y -= sp._speed * 0.3 * dt;
-      sp.x += sp._drift * dt;
+      if (ticks < _introLen * 0.4) { sp.alpha = 0; return; }
+      sp._phase += sp._twinkleSpeed * dt;
+      // Twinkle: fade in and out with random offset for staggered timing
+      const twinkle = Math.sin(sp._phase + sp._lifeOffset) * 0.5 + 0.5;
+      sp.alpha = twinkle * 0.7;
+      // Slight upward drift
+      sp.y -= 0.15 * dt;
       if (sp.y < -10) { sp.y = BASE_H + 10; sp.x = Math.random() * BASE_W; }
       if (closing) sp.alpha *= Math.max(0, 1 - closeTicks / _closeLen);
     });
 
-    // ── Gold coins with gravity + bounce ──
-    coins.forEach(coin => {
-      coin._age += dt;
-      if (coin._age < coin._delay) return;
-      coin.alpha = 1;
-      coin._vy += coin._gravity * dt;
-      coin.y += coin._vy * dt;
-      coin.x += coin._vx * dt;
-      coin.rotation += coin._spin * dt;
-      coin._flipPhase += coin._flipSpeed * dt;
-      coin.scale.x = Math.cos(coin._flipPhase);
-      if (coin.y >= GROUND_Y - coin._r) {
-        coin.y = GROUND_Y - coin._r;
-        coin._vy = -Math.abs(coin._vy) * coin._bounce;
-        coin._vx *= 0.85;
-        if (Math.abs(coin._vy) < 0.3) coin._vy = 0;
-      }
-      if (coin.x < -20) coin.x = BASE_W + 20;
-      if (coin.x > BASE_W + 20) coin.x = -20;
+    // ── Candy pop bursts ──
+    candyPops.forEach(pop => {
+      pop._age += dt;
+      if (pop._age < pop._delay) return;
+      const life = pop._age - pop._delay;
+      if (life > pop._life) { pop.alpha = 0; return; }
+      pop.alpha = Math.max(0, 1 - life / pop._life);
+      pop._vy += pop._gravity * dt;
+      pop.x += pop._vx * dt;
+      pop.y += pop._vy * dt;
+      pop._vx *= 0.98;
+      pop.scale.set(Math.max(0.3, 1 - life / pop._life * 0.5));
+      if (closing) pop.alpha *= Math.max(0, 1 - closeTicks / _closeLen);
     });
+
+    // ── Tap text breathing pulse ──
+    if (ticks > _introLen && !closing) {
+      tapText.alpha = 0.5 + Math.sin(ticks * 0.06) * 0.3;
+    }
 
     // ── Screen shake ──
     if (shakeIntensity > 0) {
       c.x = (Math.random() - 0.5) * shakeIntensity;
       c.y = (Math.random() - 0.5) * shakeIntensity;
-      shakeIntensity *= 0.86;
-      if (shakeIntensity < 0.5) { shakeIntensity = 0; c.x = 0; c.y = 0; }
+      shakeIntensity *= 0.88;
+      if (shakeIntensity < 0.4) { shakeIntensity = 0; c.x = 0; c.y = 0; }
     }
 
-    // ── Flash fade ──
-    if (flash.alpha > 0) {
-      flash.alpha *= 0.85;
-      if (flash.alpha < 0.01) flash.alpha = 0;
-    }
 
-    // ── Close: fade out everything ──
+    // ── Close: fade out + scale down ──
     if (closing) {
       closeTicks += dt;
       const p = Math.min(closeTicks / _closeLen, 1);
-      c.alpha = 1 - p;
-      winDimEl.style.opacity = String(1 - p);
+      const fadeEase = easeOutCubic(p);
+      c.alpha = 1 - fadeEase;
+      frameContainer.scale.set(1 - fadeEase * 0.1);
+      if (winDimEl) winDimEl.style.opacity = String(1 - fadeEase);
       if (p >= 1) { cleanup(); onComplete(); }
     }
   };
@@ -4118,7 +4360,8 @@ function showWinCelebration(winAmount, onComplete) {
     closing = true; closeTicks = 0;
     stopSound('coin_count');
     counterText.text = formatMoney(winAmount);
-    updateTierVisuals(WIN_TIERS.indexOf(finalTier));
+    const fi = WIN_TIERS.indexOf(finalTier);
+    if (fi !== currentTierIdx) updateTierVisuals(fi);
   }
 
   function skipToEnd() {
@@ -4128,33 +4371,33 @@ function showWinCelebration(winAmount, onComplete) {
     counterText.text = formatMoney(winAmount);
     counterText.scale.set(1);
     const fi = WIN_TIERS.indexOf(finalTier);
-    if (fi > currentTierIdx) { currentTierIdx = fi; updateTierVisuals(fi); triggerFlash(0.3); }
+    if (fi > currentTierIdx) { currentTierIdx = fi; updateTierVisuals(fi); }
     tierLabel.scale.set(1); tierGlow.scale.set(1);
-    setTimeout(() => startClose(), 200);
+    tierLabel.y = -FRAME_H * 0.22; tierGlow.y = -FRAME_H * 0.22;
+    setTimeout(() => startClose(), 150);
   }
 
   function cleanup() {
     stopSound('coin_count');
+    if (autoDismissTimer) clearTimeout(autoDismissTimer);
     app.ticker.remove(tickFn);
-    // Release pooled Graphics before destroying container
     for (const g of _celebGfx) releaseGfx(g);
     _celebGfx.length = 0;
     if (c.parent) app.stage.removeChild(c);
     c.destroy({ children: true, texture: false, baseTexture: false });
-    if (winDimEl.parentNode) winDimEl.remove();
+    if (winDimEl && winDimEl.parentNode) winDimEl.remove();
     app.view.style.zIndex = '2';
     _winCelebrationActive = false;
+    paylineLayer.visible = true;
   }
 
   c.on('pointerdown', skipToEnd);
   app.ticker.add(tickFn);
 
-  // Initial flash burst
-  triggerFlash(0.6);
-
   } catch (err) {
     console.error('[SUGAR STACK] Win celebration error:', err);
     _winCelebrationActive = false;
+    paylineLayer.visible = true;
     if (winDimEl && winDimEl.parentNode) winDimEl.remove();
     app.view.style.zIndex = '2';
     onComplete();
@@ -4168,7 +4411,7 @@ function showFSWinFlash(winAmount, onComplete) {
   let _skipped = false;
 
   const label = new PIXI.Text(formatMoney(winAmount), {
-    fontFamily: 'Georgia, serif', fontSize: 52, fontWeight: 'bold',
+    fontFamily: "'Cherry Bomb One', 'Fredoka', sans-serif", fontSize: 52, fontWeight: 'bold',
     fill: [0xffffff, 0xffd700],
     fillGradientStops: [0, 1],
     stroke: 0x1a0a00, strokeThickness: 6,
@@ -4243,7 +4486,7 @@ let _paylinePulseTimer = null;
 let _skipWinLines = null; // global skip function — set during payline cycling
 function clearWinLines() {
   if (_paylineCycleTimer) { clearInterval(_paylineCycleTimer); _paylineCycleTimer = null; }
-  if (_paylinePulseTimer) { cancelAnimationFrame(_paylinePulseTimer); _paylinePulseTimer = null; }
+  if (_paylinePulseTimer) { app.ticker.remove(_paylinePulseTimer); _paylinePulseTimer = null; }
   // Release pooled Graphics back to pool, destroy Text objects
   while (paylineLayer.children.length > 0) {
     const child = paylineLayer.children[0];
@@ -4310,19 +4553,19 @@ function showWinLines(totalWin, onComplete) {
   });
 
   let pulseT = 0;
-  const pulseFn = () => {
-    pulseT += 0.05;
+  const pulseFn = (dt) => {
+    pulseT += dt * 0.05;
     const s = 1 + Math.sin(pulseT * 2) * 0.06;
     for (const { sp, origScale } of pulsedSprites) {
       sp.scale.set(origScale * s);
     }
-    _paylinePulseTimer = requestAnimationFrame(pulseFn);
   };
-  pulseFn();
+  app.ticker.add(pulseFn);
+  _paylinePulseTimer = pulseFn;
 
   // Candy-styled count-up text in center of grid
   const winText = new PIXI.Text(formatMoney(0), {
-    fontFamily: 'Georgia, serif',
+    fontFamily: "'Cherry Bomb One', 'Fredoka', sans-serif",
     fontSize: 56,
     fontWeight: 'bold',
     fill: [0xffe57f, 0xff9500],
@@ -4349,8 +4592,8 @@ function showWinLines(totalWin, onComplete) {
   const startTime = performance.now();
   playSound('coin_count');
 
-  function countUpTick() {
-    if (_finished) return;
+  const countUpFn = () => {
+    if (_finished) { app.ticker.remove(countUpFn); return; }
     const elapsed = performance.now() - startTime;
 
     if (elapsed < countDuration) {
@@ -4368,27 +4611,25 @@ function showWinLines(totalWin, onComplete) {
       }
       // Bottom bar count-up in sync
       if (txtWin) { txtWin.text = formatMoney(current); txtWin.style.fill = 0xffd700; }
-      requestAnimationFrame(countUpTick);
     } else if (elapsed < countDuration + holdDuration) {
       // Hold phase — final value displayed
       winText.text = formatMoney(totalWin);
       winText.scale.set(1);
       winText.alpha = 1;
       if (txtWin) { txtWin.text = formatMoney(totalWin); txtWin.style.fill = 0xffd700; }
-      requestAnimationFrame(countUpTick);
     } else if (elapsed < countDuration + holdDuration + fadeDuration) {
       // Fade out + float up
       const fp = (elapsed - countDuration - holdDuration) / fadeDuration;
       winText.alpha = 1 - fp;
       winText.y = GRID_Y + GRID_H / 2 - 30 * fp;
-      requestAnimationFrame(countUpTick);
     } else {
       // Done — reset sprites and finish
+      app.ticker.remove(countUpFn);
       for (const { sp, origScale } of pulsedSprites) sp.scale.set(origScale);
       finishAll();
     }
-  }
-  requestAnimationFrame(countUpTick);
+  };
+  app.ticker.add(countUpFn);
 
   // Skip overlay — tap anywhere to skip
   const skipOverlay = new PIXI.Graphics();
@@ -4414,14 +4655,29 @@ async function afterWilds() {
   // RGS data was already synced in onAllStopped (await + replace + snap).
   // No duplicate replacement needed here.
 
-  // After wild expansion, update lastBoard to reflect the expanded state.
-  // Wins are calculated against the post-expansion board (all rows wild on expanded reels),
-  // so lastBoard must match — otherwise payline highlights show wrong symbols.
+  // After wild expansion, create a COPY of lastBoard with expanded wilds.
+  // Wins are calculated against the post-expansion board (all rows wild on expanded reels).
+  // CRITICAL: do NOT mutate lastBoard in place — it's a reference to spinData.board
+  // in _simSpins, and mutating it corrupts future spins' board data.
   if (wildReels.length > 0) {
-    for (const wr of wildReels) {
-      for (let row = 0; row < ROWS; row++) {
-        lastBoard[wr.reel][row] = WILD;
+    // DEBUG: check spinData.board BEFORE copy
+    const _origCounts = _simSpins[_simSpinIdx].board.map(col => col.filter(c => c === WILD).length);
+
+    lastBoard = lastBoard.map((col, r) => {
+      if (wildReels.some(wr => wr.reel === r)) {
+        return col.map(() => WILD);
       }
+      return [...col]; // shallow copy to prevent any other mutation leaks
+    });
+
+    // DEBUG: check spinData.board AFTER copy — should be unchanged
+    const _afterCounts = _simSpins[_simSpinIdx].board.map(col => col.filter(c => c === WILD).length);
+    if (_afterCounts.some((c, i) => c !== _origCounts[i])) {
+      console.error('[afterWilds BUG] spinData.board was mutated despite copy!');
+    }
+    // Also check NEXT spin's board
+    if (_simSpins[_simSpinIdx + 1]) {
+      const _nextCounts = _simSpins[_simSpinIdx + 1].board.map(col => col.filter(c => c === WILD).length);
     }
   }
 
@@ -4470,13 +4726,12 @@ async function afterWilds() {
       }
     }
     if (boardScatters >= 3) {
-      console.log('[RGS] fallback scatter detection:', boardScatters, 'scatters on board');
       scatterCount = boardScatters;
       fsTriggerCount = 10; // default: 3 scatters = 10 FS
     }
   }
 
-  const tier = (!inFS && spinWin > 0) ? getWinTier(spinWin) : null;
+  const tier = (spinWin > 0 && !(inFS && fsLeft <= 0)) ? getWinTier(spinWin) : null;
 
   if (spinWin > 0) {
     const winMult = spinWin / bet;
@@ -4543,10 +4798,11 @@ async function afterWilds() {
     spinning = false;
     updateUI(); // Now shows total win in bottom bar
 
-    if (inFS && spinWin > 0) {
-      showFSWinFlash(spinWin, continueAfterCelebration);
-    } else if (tier) {
+    if (tier) {
+      // BIG/MEGA/EPIC/SENSATIONAL — fires in both base game and FS
       showWinCelebration(spinWin, continueAfterCelebration);
+    } else if (inFS && spinWin > 0) {
+      showFSWinFlash(spinWin, continueAfterCelebration);
     } else if (spinWin > 0 && !inFS) {
       showSmallWinFlash(spinWin, continueAfterCelebration);
     } else {
@@ -4585,6 +4841,11 @@ function _makeFSBoard(lockedWildReels) {
       col[wRow] = WILD;
     }
     board.push(col);
+  }
+  // DEBUG: verify board has max 1 wild per reel
+  const _dbgCounts = board.map((col, r) => col.filter(c => c === 'wild').length);
+  if (_dbgCounts.some(c => c > 1)) {
+    console.error('[_makeFSBoard BUG] Multiple wilds per reel!', _dbgCounts.join(','), 'locked:', JSON.stringify(lockedWildReels));
   }
   return board;
 }
@@ -4745,7 +5006,7 @@ function _runMultSpinner(badge, mult, gen, done) {
             sp.x += sp._vx * pd; sp.y += sp._vy * pd;
             sp.alpha = Math.max(0, 1 - sp._life / 20);
             sp.scale.set(Math.max(0.1, 1 - sp._life / 25));
-            if (sp._life > 20) { app.ticker.remove(pFn); layerFX.removeChild(sp); }
+            if (sp._life > 20) { app.ticker.remove(pFn); layerFX.removeChild(sp); sp.destroy(); }
           };
           app.ticker.add(pFn);
         }
@@ -4760,7 +5021,7 @@ function _runMultSpinner(badge, mult, gen, done) {
         const flashFn = (fd) => {
           flashT += fd;
           flash.alpha = flashAlpha * Math.max(0, 1 - flashT / 12);
-          if (flashT > 12) { app.ticker.remove(flashFn); layerFX.removeChild(flash); }
+          if (flashT > 12) { app.ticker.remove(flashFn); layerFX.removeChild(flash); flash.destroy(); }
         };
         app.ticker.add(flashFn);
 
@@ -4934,7 +5195,7 @@ function expandWilds(list, done, gen) {
         fFn = (fdt) => {
           ft += fdt;
           impactFlash.alpha = Math.max(0, 0.55 - ft * 0.06);
-          if (ft >= 10) { layerFX.removeChild(impactFlash); app.ticker.remove(fFn); }
+          if (ft >= 10) { layerFX.removeChild(impactFlash); impactFlash.destroy(); app.ticker.remove(fFn); }
         };
         app.ticker.add(fFn);
 
@@ -5020,7 +5281,7 @@ function spawnLightRays(cx, cy) {
       g.endFill();
     });
 
-    if (t >= 50) { layerFX.removeChild(g); app.ticker.remove(rFn); }
+    if (t >= 50) { layerFX.removeChild(g); g.destroy(); app.ticker.remove(rFn); }
   };
   app.ticker.add(rFn);
 }
@@ -5097,7 +5358,7 @@ function spawnWildParticles(cx, cy) {
       p.rotation += p._spin * pdt;
     }
     if (!anyAlive) {
-      for (const p of particles) layerFX.removeChild(p);
+      for (const p of particles) { layerFX.removeChild(p); p.destroy(); }
       app.ticker.remove(pFn);
     }
   };
@@ -5143,7 +5404,7 @@ function spawnWildParticles(cx, cy) {
         let iFn;
         iFn = (idt) => {
           p._life += idt;
-          if (p._life >= p._max) { layerFX.removeChild(p); app.ticker.remove(iFn); return; }
+          if (p._life >= p._max) { layerFX.removeChild(p); p.destroy(); app.ticker.remove(iFn); return; }
           p.x += p._vx * idt; p.y += p._vy * idt;
           p._vy += (upward ? 0.15 : -0.15) * idt;
           p.alpha = 1 - p._life / p._max;
@@ -5286,31 +5547,31 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb, panelType) {
     if (countUp != null && countUp > 0 && bet > 0 && countUp / bet >= 50) isEpic = true;
   });
 
-  // ── Confetti / sugar sparkle burst ──
-  const CONFETTI = 80;
+  // ── Confetti / sugar sparkle burst (intro only, skip for outro) ──
   const confetti = [];
-  const CONFETTI_COLORS = [0xffd700, 0xff69b4, 0x00ffcc, 0xff6600, 0xffffff, 0x9b59b6, 0xff1493, 0x44ff88];
-  for (let i = 0; i < CONFETTI; i++) {
-    const g = new PIXI.Graphics();
-    const col = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-    const sz = 2 + Math.random() * 4;
-    g.beginFill(col, 0.8 + Math.random() * 0.2);
-    // Mix circles and rectangles for confetti variety
-    if (Math.random() < 0.5) g.drawCircle(0, 0, sz);
-    else g.drawRect(-sz, -sz * 0.4, sz * 2, sz * 0.8);
-    g.endFill();
-    // Burst from center outward
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 2 + Math.random() * 5;
-    g.x = BASE_W / 2;
-    g.y = BASE_H / 2;
-    g._vx = Math.cos(angle) * speed;
-    g._vy = Math.sin(angle) * speed - 1.5;
-    g._gravity = 0.04 + Math.random() * 0.03;
-    g._rotSpd = (Math.random() - 0.5) * 0.3;
-    g._life = 1.0;
-    confetti.push(g);
-    c.addChild(g);
+  if (panelType !== 'outro') {
+    const CONFETTI = 80;
+    const CONFETTI_COLORS = [0xffd700, 0xff69b4, 0x00ffcc, 0xff6600, 0xffffff, 0x9b59b6, 0xff1493, 0x44ff88];
+    for (let i = 0; i < CONFETTI; i++) {
+      const g = new PIXI.Graphics();
+      const col = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+      const sz = 2 + Math.random() * 4;
+      g.beginFill(col, 0.8 + Math.random() * 0.2);
+      if (Math.random() < 0.5) g.drawCircle(0, 0, sz);
+      else g.drawRect(-sz, -sz * 0.4, sz * 2, sz * 0.8);
+      g.endFill();
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 5;
+      g.x = BASE_W / 2;
+      g.y = BASE_H / 2;
+      g._vx = Math.cos(angle) * speed;
+      g._vy = Math.sin(angle) * speed - 1.5;
+      g._gravity = 0.04 + Math.random() * 0.03;
+      g._rotSpd = (Math.random() - 0.5) * 0.3;
+      g._life = 1.0;
+      confetti.push(g);
+      c.addChild(g);
+    }
   }
 
   // ── AI-generated candy panel sprite ──
@@ -5323,8 +5584,8 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb, panelType) {
   panel.x = px; panel.y = py;
   panel.width = PW; panel.height = PH;
 
-  // Epic win: golden tint + extra glow
-  if (isEpic) {
+  // Epic win: golden tint + extra glow (intro only)
+  if (isEpic && panelType !== 'outro') {
     panel.tint = 0xffeebb;
     const epicGlow = new PIXI.Graphics();
     epicGlow.beginFill(0xffd700, 0.1);
@@ -5345,7 +5606,7 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb, panelType) {
 
     const actualSize = isMainNum ? size + 10 : size;
     const t = new PIXI.Text(text, {
-      fontFamily: 'Cherry Bomb One, Georgia, serif', fontSize: actualSize, fontWeight: 'bold',
+      fontFamily: 'Cherry Bomb One, Fredoka, sans-serif', fontSize: actualSize, fontWeight: 'bold',
       fill: isEpic ? [0xffd700, 0xff8800, 0xffd700] : [0xffffff, 0xfff4d0],
       fillGradientStops: [0, 0.5, 1],
       letterSpacing: spacing || 0,
@@ -5371,8 +5632,8 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb, panelType) {
     pt += dt;
     // Pulse bottom text
     tBot.alpha = 0.5 + Math.sin(pt * 0.1) * 0.5;
-    // Epic: panel glow pulses
-    if (isEpic) {
+    // Epic: panel glow pulses (intro only)
+    if (isEpic && panelType !== 'outro') {
       panel.alpha = 0.92 + Math.sin(pt * 0.1) * 0.08;
     }
     // Count-up animation for win amounts
@@ -5440,7 +5701,6 @@ async function fetchReplayData() {
 
   // Fetch round data from /bet/replay/{game}/{version}/{mode}/{event}
   const replayUrl = RGS_URL + '/bet/replay/' + REPLAY_GAME + '/' + REPLAY_VERSION + '/' + mode + '/' + eventId;
-  console.log('[REPLAY] Fetching:', replayUrl);
 
   try {
     const resp = await fetch(replayUrl);
@@ -5450,7 +5710,6 @@ async function fetchReplayData() {
       return null;
     }
     const data = await resp.json();
-    console.log('[REPLAY] Got data — payoutMultiplier:', data.payoutMultiplier, 'costMultiplier:', data.costMultiplier, 'state events:', data.state ? data.state.length : 0);
 
     const payout = data.payoutMultiplier || 0;
     const processed = processBookEntry({
@@ -5458,7 +5717,6 @@ async function fetchReplayData() {
       payoutMultiplier: Math.round(payout * 100)
     });
     const finalPayout = payout || processed.totalPayout;
-    console.log('[REPLAY] Processed — payout:', finalPayout, 'x, spins:', processed.spins.length);
 
     return { spins: processed.spins, totalPayout: finalPayout,
              mode: REPLAY_MODE || 'base', bet: betAmt,
@@ -5506,7 +5764,7 @@ function showReplayIntro(data, cb) {
 
   // Title
   const title = new PIXI.Text('ROUND REPLAY', {
-    fontFamily:'Georgia, serif', fontSize:48, fontWeight:'bold',
+    fontFamily:"'Cherry Bomb One', 'Fredoka', sans-serif", fontSize:48, fontWeight:'bold',
     fill:[0xfff4d0, 0xd4a017], stroke:0x1a0a00, strokeThickness:4,
     letterSpacing:4
   });
@@ -5514,8 +5772,8 @@ function showReplayIntro(data, cb) {
   c.addChild(title);
 
   // Info rows
-  const infoStyle = { fontFamily:'Georgia, serif', fontSize:18, fill:0xaaaaaa };
-  const valStyle = { fontFamily:'Georgia, serif', fontSize:22, fontWeight:'bold', fill:0xffffff };
+  const infoStyle = { fontFamily:"'Cherry Bomb One', 'Fredoka', sans-serif", fontSize:18, fill:0xaaaaaa };
+  const valStyle = { fontFamily:"'Cherry Bomb One', 'Fredoka', sans-serif", fontSize:22, fontWeight:'bold', fill:0xffffff };
   const rows = [
     ['Mode', modeLabel],
     [socLabel('Base Bet'), formatMoney(data.bet)],
@@ -6057,6 +6315,7 @@ function startWildGlow(r) {
       if (p._big && prog > 0.6) p.scale.set(1 + (prog - 0.6) * 4); // pop effect
       if (p._life >= p._maxLife || p.y < ry - 15) {
         gc.removeChild(p);
+        p.destroy();
         particles.splice(i, 1);
       }
     }
@@ -6077,10 +6336,6 @@ function startWildGlow(r) {
 // ─────────────────────────────────────────────────────────────
 //  HELPERS
 // ─────────────────────────────────────────────────────────────
-function pickMult() {
-  const p = [2,2,2,3,3,3,5,5,5,8,8,10,15,20,25,30,50,75,100];
-  return p[Math.floor(Math.random()*p.length)];
-}
 
 let _winScaleFn = null;
 function updateUI() {
@@ -6129,7 +6384,7 @@ function _showGameInfoHTML() {
   overlay.id = 'html-game-info';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:200;' +
     'background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;' +
-    'font-family:"Fredoka",Georgia,serif;color:#ddccaa;';
+    'font-family:"Cherry Bomb One","Fredoka",sans-serif;color:#ddccaa;';
   overlay.addEventListener('pointerdown', function(e) {
     if (e.target === overlay) { playSound('button_click'); overlay.remove(); _showSideUI(); _unlockGameUI(); }
   });
@@ -6303,7 +6558,7 @@ function _showGameInfoHTML() {
     'filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));">' + socLabel('EXPANDING WILD') + '</div>';
   html += '<div style="font-size:' + (_fs.body - 1) + 'px;line-height:' + (_fs.body + 7) + 'px;color:#c8b898;margin:8px 0;">' + socLabel('Appears on all reels. Substitutes for all symbols except Scatter. Expands to fill the entire reel. Each wild carries a random multiplier.') + '</div>';
   html += '<div style="margin-top:6px;line-height:22px;">';
-  [2,3,4,5,6,7,8,9,10,15,20,25,50,100].forEach(function(m) {
+  [2,3,5,10,20,50,100].forEach(function(m) {
     html += '<span class="info-mult-pill">' + m + '\u00D7</span> ';
   });
   html += '</div>';
@@ -6375,7 +6630,7 @@ function _showGameInfoHTML() {
     'background:linear-gradient(180deg,#ffe57f,#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;' +
     'filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));">' + socLabel('FREE SPINS') + '</div>';
   html += '<div style="font-size:' + (_fs.body - 1) + 'px;color:#c8b898;margin:8px 0;line-height:' + (_fs.body + 6) + 'px;">' + socLabel('Purchase 10 Free Spins with random expanding wilds.') + '<br><span style="color:#ffd700;font-weight:bold;">' + socLabel('Price: 150\u00D7 current bet') + '</span></div>';
-  html += '<div style="font-size:12px;color:#7aaa7a;">RTP: 97.00%</div>';
+  html += '<div style="font-size:12px;color:#7aaa7a;">RTP: 96.00%</div>';
   html += '</div>';
 
   html += '<div class="info-feature-card" style="' + cardStyle() + 'padding:18px 22px;margin:14px auto;max-width:640px;">';
@@ -6383,7 +6638,7 @@ function _showGameInfoHTML() {
     'background:linear-gradient(180deg,#ffe57f,#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;' +
     'filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));">' + socLabel('SUPER FREE SPINS') + '</div>';
   html += '<div style="font-size:' + (_fs.body - 1) + 'px;color:#c8b898;margin:8px 0;line-height:' + (_fs.body + 6) + 'px;">' + socLabel('Purchase 10 Free Spins with a guaranteed expanding wild on every spin. Higher win potential.') + '<br><span style="color:#ffd700;font-weight:bold;">' + socLabel('Price: 300\u00D7 current bet') + '</span></div>';
-  html += '<div style="font-size:12px;color:#7aaa7a;">RTP: 97.00%</div>';
+  html += '<div style="font-size:12px;color:#7aaa7a;">RTP: 96.00%</div>';
   html += '</div>';
 
   html += '<div style="text-align:center;font-size:11px;color:#8a7a5a;font-style:italic;margin:12px 12px;">' +
@@ -6401,7 +6656,7 @@ function _showGameInfoHTML() {
 
   html += '<div style="' + cardStyle() + 'padding:20px 22px;margin:14px auto;max-width:640px;">';
   html += subTitle('RTP & LIMITS');
-  html += bodyText('RTP: 97.00%<br>' + socLabel('Max Win: 15,000\u00D7 bet<br>Max Win Per Mode: 15,000\u00D7 bet'));
+  html += bodyText('RTP: 96.00%<br>' + socLabel('Max Win: 10,000\u00D7 bet<br>Max Win Per Mode: 10,000\u00D7 bet'));
   html += '</div>';
 
   html += '<div style="display:flex;gap:14px;margin:14px auto;max-width:640px;">';
@@ -6454,8 +6709,8 @@ function _showGameInfoHTML() {
   html += '<div style="' + cardStyle() + 'padding:22px 24px;margin:14px auto;max-width:640px;">';
   html += '<div style="font-size:' + (_fs.body - 1) + 'px;line-height:' + (_fs.body + 7) + 'px;color:#a09080;text-align:center;margin:0 4px;">' +
     'SUGAR STACK is a game of chance. Past results do not guarantee future outcomes.<br><br>' +
-    'This game uses a certified Random Number Generator (RNG) to determine all game outcomes. The theoretical Return to Player (RTP) is 97.00%.<br><br>' +
-    socLabel('The maximum win per round is capped at 15,000\u00D7 the bet amount. ') +
+    'This game uses a certified Random Number Generator (RNG) to determine all game outcomes. The theoretical Return to Player (RTP) is 96.00%.<br><br>' +
+    socLabel('The maximum win per round is capped at 10,000\u00D7 the bet amount. ') +
     socLabel('Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds.<br><br>') +
     socLabel('Please play responsibly. If you feel you may have a gambling problem, please seek help at a certified support organization.') +
     '</div>';
@@ -6475,427 +6730,18 @@ function showGameInfo() {
 
   // Always use scrollable HTML overlay (both portrait and landscape)
   return _showGameInfoHTML();
-
-  // Legacy PIXI modal below — kept for reference but no longer reached
-  document.getElementById('screenDim').style.display = 'block';
-  const modal = new PIXI.Container();
-  const dim = new PIXI.Graphics(); dim.beginFill(0x000000,0.88); dim.drawRect(-500,-500,BASE_W+1000,BASE_H+1000); dim.endFill();
-  dim.interactive = true; modal.addChild(dim);
-
-  const pages = [];
-  let currentPage = 0;
-
-  // ── Style helpers ──
-  const titleStyle = { fontFamily:'Georgia, serif', fontSize:32, fontWeight:'bold', fill:[0xfff700,0xffcc00], fillGradientStops:[0,1], stroke:0x1a0800, strokeThickness:4, letterSpacing:3 };
-  const subTitleStyle = { fontFamily:'Georgia, serif', fontSize:22, fontWeight:'bold', fill:0xd4a017, letterSpacing:2 };
-  const bodyStyle = { fontFamily:'Georgia, serif', fontSize:19, fill:0xddccaa, lineHeight:28, wordWrap:true, wordWrapWidth:700 };
-  const smallStyle = { fontFamily:'Georgia, serif', fontSize:15, fill:0x999999, lineHeight:22, wordWrap:true, wordWrapWidth:700 };
-  const payNumStyle = { fontFamily:'Georgia, serif', fontSize:14, fill:0xffffff };
-  const payLabelStyle = { fontFamily:'Georgia, serif', fontSize:12, fill:0x888888 };
-
-  function makeTitle(page, text, y) {
-    const t = new PIXI.Text(socLabel(text), titleStyle);
-    t.anchor.set(0.5); t.x=BASE_W/2; t.y=y||50; page.addChild(t);
-  }
-
-  // Helper: draw a symbol card with pay values (grid cell)
-  function makeSymCard(page, sym, x, y, cellW, cellH) {
-    // Card background
-    const bg = new PIXI.Graphics();
-    bg.beginFill(0x1a0f08, 0.6);
-    bg.lineStyle(1, 0x4a3520, 0.5);
-    bg.drawRoundedRect(x, y, cellW, cellH, 6);
-    bg.endFill();
-    page.addChild(bg);
-
-    // Symbol sprite
-    const sp = new PIXI.Sprite(T(sym));
-    const symSize = Math.min(cellW * 0.5, 65);
-    sp.width = symSize; sp.height = symSize;
-    sp.anchor.set(0.5);
-    sp.x = x + cellW / 2; sp.y = y + symSize / 2 + 8;
-    page.addChild(sp);
-
-    // Pay values below sprite
-    const pays = PAYTABLE[sym];
-    const payY = y + symSize + 18;
-    const lines = [`5× ${pays[2]}`, `4× ${pays[1]}`, `3× ${pays[0]}`];
-    lines.forEach((line, i) => {
-      const t = new PIXI.Text(line, payNumStyle);
-      t.anchor.set(0.5); t.x = x + cellW / 2; t.y = payY + i * 20;
-      page.addChild(t);
-    });
-  }
-
-  // ── Page 1: Symbol Values (Paytable) — Grid Layout ──
-  const p1 = new PIXI.Container();
-  makeTitle(p1, socLabel('PAYTABLE'));
-
-  // High pay symbols row (fruit symbols: watermelon, grape, orange, cherry, plum, lemon)
-  const highSyms = ['watermelon','grape','orange','cherry','plum','lemon'];
-  const highCellW = 180, highCellH = 160;
-  const highRowX = (BASE_W - highSyms.length * (highCellW + 16) + 16) / 2;
-  const highRowY = 100;
-  const stLabel1 = new PIXI.Text('HIGH', payLabelStyle);
-  stLabel1.anchor.set(0.5); stLabel1.x = highRowX - 30; stLabel1.y = highRowY + highCellH / 2;
-  stLabel1.rotation = -Math.PI / 2; p1.addChild(stLabel1);
-  highSyms.forEach((s, i) => {
-    makeSymCard(p1, s, highRowX + i * (highCellW + 16), highRowY, highCellW, highCellH);
-  });
-
-  // Low pay symbols row (5 symbols: A, K, Q, J, 10)
-  const lowSyms = ['A','K','Q','J','10'];
-  const lowCellW = 150, lowCellH = 150;
-  const lowRowX = (BASE_W - lowSyms.length * (lowCellW + 12) + 12) / 2;
-  const lowRowY = highRowY + highCellH + 30;
-  const stLabel2 = new PIXI.Text('LOW', payLabelStyle);
-  stLabel2.anchor.set(0.5); stLabel2.x = lowRowX - 25; stLabel2.y = lowRowY + lowCellH / 2;
-  stLabel2.rotation = -Math.PI / 2; p1.addChild(stLabel2);
-  lowSyms.forEach((s, i) => {
-    makeSymCard(p1, s, lowRowX + i * (lowCellW + 12), lowRowY, lowCellW, lowCellH);
-  });
-
-  // Footer note
-  const p1Note = new PIXI.Text(socLabel('All values shown as multiplier × bet.  20 paylines, left to right.'), smallStyle);
-  p1Note.anchor.set(0.5); p1Note.x = BASE_W / 2; p1Note.y = lowRowY + lowCellH + 30; p1.addChild(p1Note);
-  pages.push(p1);
-
-  // ── Page 2: Special Symbols (Bonus Game) ──
-  const p2 = new PIXI.Container();
-  makeTitle(p2, 'BONUS GAME');
-
-  // Wild section
-  const wPanel = new PIXI.Graphics();
-  wPanel.beginFill(0x1a0f08, 0.5); wPanel.lineStyle(1, 0x4a3520, 0.4);
-  wPanel.drawRoundedRect(200, 100, BASE_W - 400, 200, 8); wPanel.endFill(); p2.addChild(wPanel);
-
-  const wildSp = new PIXI.Sprite(T('wild')); wildSp.width=120; wildSp.height=120;
-  wildSp.anchor.set(0.5); wildSp.x=340; wildSp.y=200; p2.addChild(wildSp);
-
-  const wTitle = new PIXI.Text('EXPANDING WILD', subTitleStyle);
-  wTitle.x=430; wTitle.y=120; p2.addChild(wTitle);
-  const wDesc = new PIXI.Text(socLabel('Appears on all reels. Substitutes for all symbols except\nScatter. Expands to fill the entire reel. Each wild carries a random\nmultiplier that applies to all winning lines passing through it.'), bodyStyle);
-  wDesc.x=430; wDesc.y=155; p2.addChild(wDesc);
-  const wMult = new PIXI.Text('Multipliers: 2× 3× 4× 5× 6× 7× 8× 9× 10× 15× 20× 25× 50× 100×', { fontFamily:'Georgia, serif', fontSize:14, fill:0xd4a017 });
-  wMult.x=430; wMult.y=250; p2.addChild(wMult);
-
-  // Scatter section
-  const sPanel = new PIXI.Graphics();
-  sPanel.beginFill(0x1a0f08, 0.5); sPanel.lineStyle(1, 0x4a3520, 0.4);
-  sPanel.drawRoundedRect(200, 330, BASE_W - 400, 200, 8); sPanel.endFill(); p2.addChild(sPanel);
-
-  const scSp = new PIXI.Sprite(T('scatter')); scSp.width=120; scSp.height=120;
-  scSp.anchor.set(0.5); scSp.x=340; scSp.y=430; p2.addChild(scSp);
-
-  const sTitle = new PIXI.Text('SCATTER', subTitleStyle);
-  sTitle.x=430; sTitle.y=350; p2.addChild(sTitle);
-  const sDesc = new PIXI.Text(socLabel('Appears on reels 1, 3, and 5 only. Landing 3 or more Scatter\nsymbols triggers 10 Free Spins. During Free Spins, all wild\nsymbols are sticky and persist for the remaining spins.'), bodyStyle);
-  sDesc.x=430; sDesc.y=385; p2.addChild(sDesc);
-
-  // Retrigger info (Issue #6)
-  const retrNote = new PIXI.Text(socLabel('RETRIGGER: Free Spins cannot be retriggered.\nThe bonus round awards a fixed 10 Free Spins.'), { fontFamily:'Georgia, serif', fontSize:14, fill:0xff8844, fontWeight:'bold' });
-  retrNote.x=430; retrNote.y=455; p2.addChild(retrNote);
-
-  // Free spins note
-  const fsNote = new PIXI.Text(socLabel('During Free Spins, wild multipliers from multiple reels\nare combined for massive combined multipliers.'), { fontFamily:'Georgia, serif', fontSize:14, fill:0xd4a017, fontStyle:'italic' });
-  fsNote.x=430; fsNote.y=495; p2.addChild(fsNote);
-  pages.push(p2);
-
-  // ── Page 2b: Paylines (Issue #5) ──
-  const pPL = new PIXI.Container();
-  makeTitle(pPL, socLabel('PAYLINES'));
-  const plNote = new PIXI.Text(socLabel('20 paylines — wins pay left to right on adjacent reels'), { fontFamily:'Georgia, serif', fontSize:15, fill:0xaaaaaa });
-  plNote.anchor.set(0.5); plNote.x = BASE_W/2; plNote.y = 78; pPL.addChild(plNote);
-
-  // Draw 20 paylines in a 4x5 grid of mini 5x5 diagrams
-  const plCols = 5, plRows = 4;
-  const cellSz = 14, gap = 3, padX = 80, padY = 105;
-  const diagW = REELS * (cellSz + gap) - gap;
-  const diagH = ROWS * (cellSz + gap) - gap;
-  const spacingX = (BASE_W - 2 * padX) / plCols;
-  const spacingY = (BASE_H - padY - 60) / plRows;
-
-  PAYLINES.forEach((line, idx) => {
-    const col = idx % plCols;
-    const row = Math.floor(idx / plCols);
-    const ox = padX + col * spacingX + (spacingX - diagW) / 2;
-    const oy = padY + row * spacingY;
-
-    // Label
-    const lbl = new PIXI.Text('L' + (idx + 1), { fontFamily:'Georgia, serif', fontSize:11, fill:0xd4a017, fontWeight:'bold' });
-    lbl.anchor.set(0.5); lbl.x = ox + diagW / 2; lbl.y = oy - 10; pPL.addChild(lbl);
-
-    // Grid background
-    const gbg = new PIXI.Graphics();
-    gbg.beginFill(0x1a0f08, 0.5);
-    gbg.drawRoundedRect(ox - 6, oy - 4, diagW + 12, diagH + 8, 4);
-    gbg.endFill();
-    pPL.addChild(gbg);
-
-    // Draw 5x5 dots
-    const dotG = new PIXI.Graphics();
-    for (let c = 0; c < REELS; c++) {
-      for (let r = 0; r < ROWS; r++) {
-        const x = ox + c * (cellSz + gap) + cellSz / 2;
-        const y = oy + r * (cellSz + gap) + cellSz / 2;
-        dotG.beginFill(0x333333, 0.6);
-        dotG.drawCircle(x, y, 3);
-        dotG.endFill();
-      }
-    }
-    pPL.addChild(dotG);
-
-    // Draw payline path (highlighted dots + connecting line)
-    const lineG = new PIXI.Graphics();
-    const colors = [0xff4444, 0x44ff44, 0x4488ff, 0xffaa00, 0xff44ff,
-                    0x44ffff, 0xffff44, 0xff8844, 0x88ff44, 0x4444ff,
-                    0xff4488, 0x44ff88, 0x8844ff, 0xff8888, 0x88ffaa,
-                    0xaa88ff, 0xffcc44, 0x44ccff, 0xcc44ff, 0xff44cc];
-    const clr = colors[idx % colors.length];
-    lineG.lineStyle(2, clr, 0.9);
-
-    for (let c = 0; c < REELS; c++) {
-      const r = line[c];
-      const x = ox + c * (cellSz + gap) + cellSz / 2;
-      const y = oy + r * (cellSz + gap) + cellSz / 2;
-      if (c === 0) lineG.moveTo(x, y);
-      else lineG.lineTo(x, y);
-    }
-    pPL.addChild(lineG);
-
-    // Highlight dots on the payline
-    const hlG = new PIXI.Graphics();
-    for (let c = 0; c < REELS; c++) {
-      const r = line[c];
-      const x = ox + c * (cellSz + gap) + cellSz / 2;
-      const y = oy + r * (cellSz + gap) + cellSz / 2;
-      hlG.beginFill(clr, 1);
-      hlG.drawCircle(x, y, 5);
-      hlG.endFill();
-    }
-    pPL.addChild(hlG);
-  });
-  pages.push(pPL);
-
-  // ── Page 3: Feature Buy ──
-  const p3 = new PIXI.Container();
-  makeTitle(p3, socLabel('BUY BONUS'));
-
-  // Free Spins card
-  const fsBuyPanel = new PIXI.Graphics();
-  fsBuyPanel.beginFill(0x1a0f08, 0.6); fsBuyPanel.lineStyle(1, 0x8B1A1A, 0.6);
-  fsBuyPanel.drawRoundedRect(200, 100, 500, 160, 8); fsBuyPanel.endFill(); p3.addChild(fsBuyPanel);
-
-  const fs1Title = new PIXI.Text('FREE SPINS', subTitleStyle);
-  fs1Title.x=230; fs1Title.y=115; p3.addChild(fs1Title);
-  const fs1Desc = new PIXI.Text(socLabel('Purchase 10 Free Spins with random expanding wilds.\nPrice: 150× current bet'), bodyStyle);
-  fs1Desc.x=230; fs1Desc.y=150; p3.addChild(fs1Desc);
-  const fs1Rtp = new PIXI.Text('RTP: 97.00%', { fontFamily:'Georgia, serif', fontSize:14, fill:0x88aa88 });
-  fs1Rtp.x=230; fs1Rtp.y=215; p3.addChild(fs1Rtp);
-
-  // Super Free Spins card
-  const sfsBuyPanel = new PIXI.Graphics();
-  sfsBuyPanel.beginFill(0x1a0f08, 0.6); sfsBuyPanel.lineStyle(1, 0xC9A84C, 0.6);
-  sfsBuyPanel.drawRoundedRect(200, 290, 500, 180, 8); sfsBuyPanel.endFill(); p3.addChild(sfsBuyPanel);
-
-  const fs2Title = new PIXI.Text('SUPER FREE SPINS', subTitleStyle);
-  fs2Title.x=230; fs2Title.y=305; p3.addChild(fs2Title);
-  const fs2Desc = new PIXI.Text(socLabel('Purchase 10 Free Spins with a guaranteed expanding wild\non every spin. Higher win potential.\nPrice: 300× current bet'), bodyStyle);
-  fs2Desc.x=230; fs2Desc.y=340; p3.addChild(fs2Desc);
-  const fs2Rtp = new PIXI.Text('RTP: 97.00%', { fontFamily:'Georgia, serif', fontSize:14, fill:0x88aa88 });
-  fs2Rtp.x=230; fs2Rtp.y=425; p3.addChild(fs2Rtp);
-
-  const buyNote = new PIXI.Text(socLabel('Feature Buy is not available in all jurisdictions.\nThe bet level used for the bonus is the current bet at time of purchase.'), smallStyle);
-  buyNote.anchor.set(0.5); buyNote.x=BASE_W/2; buyNote.y=520; p3.addChild(buyNote);
-  pages.push(p3);
-
-  // ── Page 4: Game Rules ──
-  const p4 = new PIXI.Container();
-  makeTitle(p4, 'GAME RULES');
-
-  const rulesLeft = [
-    socLabel('• 5 reels, 5 rows, 20 paylines'),
-    socLabel('• All wins pay left to right on adjacent reels'),
-    socLabel('• Wins = line value × bet × wild multiplier'),
-    socLabel('• Wild multipliers from multiple reels are combined'),
-  ];
-  const rulesRight = [
-    'RTP: 97.00%',
-    socLabel('Max Win: 15,000× bet'),
-    '',
-    socLabel('Max Win Per Mode: 15,000× bet'),
-    '',
-  ];
-
-  // Base Mode section
-  const bmPanel = new PIXI.Graphics();
-  bmPanel.beginFill(0x1a0f08, 0.4); bmPanel.drawRoundedRect(120, 290, 650, 90, 8); bmPanel.endFill(); p4.addChild(bmPanel);
-  const bmTitle = new PIXI.Text('BASE MODE', { fontFamily:'Georgia, serif', fontSize:16, fontWeight:'bold', fill:0xd4a017 });
-  bmTitle.x=140; bmTitle.y=300; p4.addChild(bmTitle);
-  const bmRules = [
-    socLabel('• Landing 3+ Scatter symbols (reels 1, 3, 5) triggers 10 Free Spins'),
-    socLabel('• Wild symbols can appear on any reel and expand to fill the entire reel'),
-  ];
-  bmRules.forEach((r, i) => {
-    const t = new PIXI.Text(r, bodyStyle); t.x=140; t.y=325+i*25; p4.addChild(t);
-  });
-
-  // Free Spins section
-  const fsPanel = new PIXI.Graphics();
-  fsPanel.beginFill(0x1a0f08, 0.4); fsPanel.drawRoundedRect(800, 290, 500, 90, 8); fsPanel.endFill(); p4.addChild(fsPanel);
-  const fsTitle = new PIXI.Text('FREE SPINS', { fontFamily:'Georgia, serif', fontSize:16, fontWeight:'bold', fill:0xd4a017 });
-  fsTitle.x=820; fsTitle.y=300; p4.addChild(fsTitle);
-  const fsRules = [
-    socLabel('• Wilds are sticky during Free Spins'),
-    socLabel('• Free Spins cannot be retriggered'),
-  ];
-  fsRules.forEach((r, i) => {
-    const t = new PIXI.Text(r, bodyStyle); t.x=820; t.y=325+i*25; p4.addChild(t);
-  });
-
-  const rLeftPanel = new PIXI.Graphics();
-  rLeftPanel.beginFill(0x1a0f08, 0.4); rLeftPanel.drawRoundedRect(120, 95, 650, 280, 8); rLeftPanel.endFill(); p4.addChild(rLeftPanel);
-  const rlTitle = new PIXI.Text('GENERAL RULES', { fontFamily:'Georgia, serif', fontSize:16, fontWeight:'bold', fill:0xd4a017 });
-  rlTitle.x=140; rlTitle.y=105; p4.addChild(rlTitle);
-  rulesLeft.forEach((r, i) => {
-    const t = new PIXI.Text(r, bodyStyle); t.x=140; t.y=135+i*35; p4.addChild(t);
-  });
-
-  const rRightPanel = new PIXI.Graphics();
-  rRightPanel.beginFill(0x1a0f08, 0.4); rRightPanel.drawRoundedRect(800, 95, 500, 280, 8); rRightPanel.endFill(); p4.addChild(rRightPanel);
-  const rrTitle = new PIXI.Text('RTP & LIMITS', { fontFamily:'Georgia, serif', fontSize:16, fontWeight:'bold', fill:0xd4a017 });
-  rrTitle.x=820; rrTitle.y=105; p4.addChild(rrTitle);
-  rulesRight.forEach((r, i) => {
-    const t = new PIXI.Text(r, bodyStyle); t.x=820; t.y=135+i*35; p4.addChild(t);
-  });
-
-  // Interrupted Rounds section
-  const irPanel = new PIXI.Graphics();
-  irPanel.beginFill(0x1a0f08, 0.4); irPanel.drawRoundedRect(120, 410, BASE_W-240, 140, 8); irPanel.endFill(); p4.addChild(irPanel);
-  const irTitle = new PIXI.Text('INTERRUPTED ROUNDS', { fontFamily:'Georgia, serif', fontSize:16, fontWeight:'bold', fill:0xd4a017 });
-  irTitle.x=140; irTitle.y=420; p4.addChild(irTitle);
-  const irText = new PIXI.Text(socLabel('If a game round is interrupted (disconnection, browser crash, etc.), the game state\nis saved. Upon reconnection, the round will resume from where it was interrupted.\nAny pending free spins or wins will be restored. If recovery fails, the bet is refunded.'), bodyStyle);
-  irText.x=140; irText.y=450; p4.addChild(irText);
-  pages.push(p4);
-
-  // ── Page 5: Controls ──
-  const p5 = new PIXI.Container();
-  makeTitle(p5, 'CONTROLS');
-  const ctrls = [
-    socLabel('SPIN — Start a spin (or press SPACE)'),
-    socLabel('+/− — Increase or decrease bet size'),
-    socLabel('TURBO — Toggle fast spin mode'),
-    socLabel('AUTO/STOP — Set automatic spins (10/25/50/100/∞). Click STOP, SPIN, or press ESC/SPACE to cancel'),
-    socLabel('BUY BONUS — Purchase free spins directly'),
-    socLabel('INFO — Open this game information'),
-    socLabel('FULLSCREEN — Toggle fullscreen mode'),
-    socLabel('ESC — Close modals'),
-  ];
-  const ctrlPanel = new PIXI.Graphics();
-  ctrlPanel.beginFill(0x1a0f08, 0.4); ctrlPanel.drawRoundedRect(350, 95, 900, 360, 8); ctrlPanel.endFill(); p5.addChild(ctrlPanel);
-  ctrls.forEach((c,i) => {
-    const parts = c.split(' — ');
-    if (parts.length === 2) {
-      const kT = new PIXI.Text(parts[0], { fontFamily:'Georgia, serif', fontSize:17, fontWeight:'bold', fill:0xd4a017 });
-      kT.x=380; kT.y=115+i*40; p5.addChild(kT);
-      const vT = new PIXI.Text(parts[1], bodyStyle);
-      vT.x=600; vT.y=115+i*40; p5.addChild(vT);
-    } else {
-      const ct = new PIXI.Text(c, bodyStyle); ct.x=380; ct.y=115+i*40; p5.addChild(ct);
-    }
-  });
-  pages.push(p5);
-
-  // ── Page 6: Legal Notice ──
-  const p6 = new PIXI.Container();
-  makeTitle(p6, 'LEGAL NOTICE');
-  const legalPanel = new PIXI.Graphics();
-  legalPanel.beginFill(0x1a0f08, 0.4); legalPanel.drawRoundedRect(200, 95, BASE_W-400, 440, 8); legalPanel.endFill(); p6.addChild(legalPanel);
-  const legalText = new PIXI.Text(
-    'SUGAR STACK is a game of chance. Past results do not guarantee future outcomes.\n\n' +
-    'This game uses a certified Random Number Generator (RNG) to determine\nall game outcomes. The theoretical Return to Player (RTP) is 97.00%.\n\n' +
-    socLabel('The maximum win per round is capped at 15,000× the bet amount.\n') +
-    socLabel('Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Winnings are settled according to the amount received from the Remote Game Server and not from events within the web browser. TM and \u00A9 2026 Stake Engine.\n\n') +
-    socLabel('Please play responsibly. If you feel you may have a gambling problem,\nplease seek help at a certified support organization.'),
-    { fontFamily:'Georgia, serif', fontSize:15, fill:0xbbaa88, lineHeight:24, wordWrap:true, wordWrapWidth:BASE_W-460 }
-  );
-  legalText.x=230; legalText.y=115; p6.addChild(legalText);
-
-  const copyright = new PIXI.Text('© 2026 Stake Engine. All rights reserved.', { fontFamily:'Georgia, serif', fontSize:13, fill:0x666666 });
-  copyright.anchor.set(0.5); copyright.x=BASE_W/2; copyright.y=500; p6.addChild(copyright);
-  pages.push(p6);
-
-  // Show first page — wrap in container that scales for portrait
-  const pageWrap = new PIXI.Container();
-  pages.forEach(p => { p.visible = false; pageWrap.addChild(p); });
-  pages[0].visible = true;
-  if (window.innerHeight > window.innerWidth * 1.2) {
-    // Per-page scale tuned to each page's content width
-    // Visible canvas: ~x376-1223. Scale = min(424/(800-leftX), 423/(rightX-800))
-    // [paytable(382-1217), bonus(200-1200), paylines(80-1520), buy(200-1150), rules(120-1300), controls(350-1250), legal(200-1370)]
-    var _ps = [0.92, 0.70, 0.56, 0.70, 0.60, 0.88, 0.70];
-    pages.forEach(function(p, i) {
-      var s = _ps[i] || 0.72;
-      p.scale.set(s);
-      p.x = BASE_W * (1 - s) / 2;
-      p.y = BASE_H * (1 - s) / 2 * 0.35;
-    });
-  }
-  modal.addChild(pageWrap);
-
-  // Page indicator
-  const pageNum = new PIXI.Text('1 / '+pages.length, { fontFamily:'Georgia, serif', fontSize:16, fill:0x888888 });
-  pageNum.anchor.set(0.5); pageNum.x=BASE_W/2; pageNum.y=BASE_H-40; modal.addChild(pageNum);
-
-  function goPage(n) { pages[currentPage].visible=false; currentPage=n; pages[currentPage].visible=true; pageNum.text=(currentPage+1)+' / '+pages.length; }
-
-  // Nav arrows — positioned inside grid area so they're visible in portrait
-  const makeArrow = (label, x, dir) => {
-    const a = new PIXI.Text(label, { fontFamily:'Georgia, serif', fontSize:36, fontWeight:'bold', fill:0xd4a017 });
-    a.anchor.set(0.5); a.x=x; a.y=BASE_H/2; a.interactive=true; a.cursor='pointer';
-    a.on('pointerover',()=>{a.style.fill=0xffcc44;}); a.on('pointerout',()=>{a.style.fill=0xd4a017;});
-    a.on('pointerdown',()=>{ const np=currentPage+dir; if(np>=0&&np<pages.length) goPage(np); });
-    modal.addChild(a);
-  };
-  makeArrow('‹', GRID_X - 10, -1);
-  makeArrow('›', GRID_X + GRID_W + 10, 1);
-
-  // Close button — inside visible area for portrait
-  const closeInfo = () => { _gameInfoOverlay = null; app.stage.removeChild(modal); modal.destroy({children:true}); document.getElementById('screenDim').style.display = 'none'; };
-  modal._close = closeInfo;
-  const xBtn = new PIXI.Text('✕', { fontFamily:'Arial', fontSize:28, fill:0x999999 });
-  xBtn.anchor.set(0.5); xBtn.x=GRID_X+GRID_W-20; xBtn.y=55; xBtn.interactive=true; xBtn.cursor='pointer';
-  xBtn.hitArea = new PIXI.Circle(0, 0, 28);
-  xBtn.on('pointerover',()=>{xBtn.style.fill=0xff6666;}); xBtn.on('pointerout',()=>{xBtn.style.fill=0x999999;});
-  xBtn.on('pointerdown',(e)=>{ e.stopPropagation(); playSound('button_click'); closeInfo(); });
-  modal.addChild(xBtn);
-
-  // Swipe gesture for page navigation (mobile touch)
-  let _swStartX = 0;
-  dim.on('pointerdown', (e) => { _swStartX = e.data.global.x; });
-  dim.on('pointerup', (e) => {
-    const dx = e.data.global.x - _swStartX;
-    if (Math.abs(dx) > 40) {
-      const np = currentPage + (dx < 0 ? 1 : -1);
-      if (np >= 0 && np < pages.length) goPage(np);
-    } else if (Math.abs(dx) < 8) {
-      closeInfo();  // tap (no swipe) on background = close
-    }
-  });
-
-  _gameInfoOverlay = modal;
-  app.stage.addChild(modal);
 }
+/* Legacy PIXI game info modal deleted — using HTML overlay (_showGameInfoHTML) */
 
 // ─────────────────────────────────────────────────────────────
 //  PORTRAIT WARNING
 // ─────────────────────────────────────────────────────────────
 const portraitWarning = new PIXI.Container(); portraitWarning.visible = false; portraitWarning.interactive = true; portraitWarning.interactiveChildren = false;
 const _pwBg = new PIXI.Graphics(); _pwBg.beginFill(0x08020e); _pwBg.drawRect(-500,-500,BASE_W+1000,BASE_H+1000); _pwBg.endFill(); portraitWarning.addChild(_pwBg);
-const _pwText = new PIXI.Text('ROTATE YOUR DEVICE', { fontFamily:'Georgia, serif', fontSize:28, fontWeight:'bold',
+const _pwText = new PIXI.Text('ROTATE YOUR DEVICE', { fontFamily:"'Cherry Bomb One', 'Fredoka', sans-serif", fontSize:28, fontWeight:'bold',
   fill:[0xfff700,0xffcc00], fillGradientStops:[0,1], stroke:0x1a0800, strokeThickness:4, letterSpacing:4 });
 _pwText.anchor.set(0.5); _pwText.x=BASE_W/2; _pwText.y=BASE_H/2-10; portraitWarning.addChild(_pwText);
-const _pwSub = new PIXI.Text('This game is best played in landscape mode', { fontFamily:'Georgia, serif', fontSize:16, fill:0x888888 });
+const _pwSub = new PIXI.Text('This game is best played in landscape mode', { fontFamily:"'Cherry Bomb One', 'Fredoka', sans-serif", fontSize:16, fill:0x888888 });
 _pwSub.anchor.set(0.5); _pwSub.x=BASE_W/2; _pwSub.y=BASE_H/2+30; portraitWarning.addChild(_pwSub);
 app.stage.addChild(portraitWarning);
 
@@ -7003,7 +6849,7 @@ function _showPortraitAutoPicker() {
     var b = document.createElement('button');
     b.textContent = n;
     b.style.cssText = 'width:44px;height:30px;border-radius:4px;border:1px solid rgba(138,96,48,0.8);' +
-      'background:rgba(26,0,48,1);color:#d4a017;font:bold 12px Georgia,serif;cursor:pointer;';
+      "background:rgba(26,0,48,1);color:#d4a017;font:bold 12px 'Cherry Bomb One','Fredoka',sans-serif;cursor:pointer;";
     b.addEventListener('pointerdown', function(ev) {
       ev.preventDefault();
       var count = n === '\u221E' ? -1 : n;
@@ -7033,13 +6879,13 @@ function _showPortraitAutoConfirm(count) {
     'left:50%;transform:translateX(-50%);z-index:150;' +
     'background:rgba(10,0,24,0.95);border:1px solid rgba(212,160,23,0.5);' +
     'border-radius:8px;padding:12px 16px;text-align:center;';
-  d.innerHTML = '<div style="color:#d4a017;font:bold 13px Georgia,serif;margin-bottom:10px;">' +
+  d.innerHTML = '<div style="color:#d4a017;font:bold 13px Cherry Bomb One,Fredoka,sans-serif;margin-bottom:10px;">' +
     socLabel('Start') + ' ' + lbl + ' ' + socLabel('auto spins?') + '</div>' +
     '<div style="display:flex;gap:10px;justify-content:center;">' +
     '<button id="p-auto-yes" style="width:80px;height:30px;border-radius:4px;border:1.5px solid #d4a017;' +
-    'background:#1a0a00;color:#ffcc44;font:bold 12px Georgia,serif;cursor:pointer;">CONFIRM</button>' +
+    'background:#1a0a00;color:#ffcc44;font:bold 12px Cherry Bomb One,Fredoka,sans-serif;cursor:pointer;">CONFIRM</button>' +
     '<button id="p-auto-no" style="width:80px;height:30px;border-radius:4px;border:1.5px solid #666;' +
-    'background:#1a1a1a;color:#999;font:bold 12px Georgia,serif;cursor:pointer;">CANCEL</button></div>';
+    'background:#1a1a1a;color:#999;font:bold 12px Cherry Bomb One,Fredoka,sans-serif;cursor:pointer;">CANCEL</button></div>';
   document.body.appendChild(d);
   document.getElementById('p-auto-yes').addEventListener('pointerdown', function(ev) {
     ev.preventDefault();
@@ -7167,7 +7013,6 @@ if (_rgsBlocked) {
     if (auth.round && auth.round.active) {
       RGS._roundActive = true;
       if (auth.round.bet != null) bet = fromRGS(auth.round.bet);
-      console.log('[RGS] Active round detected on refresh, bet:', bet);
     }
     if (auth.disabledFullscreen) { disabledFullscreen = true; if (_fsBtn) _fsBtn.c.visible = false; }
     if (auth.disabledTurbo) { disabledTurbo = true; turboMode = false; if (_turboBtn) _turboBtn.c.visible = false; }
@@ -7195,7 +7040,6 @@ if (_rgsBlocked) {
 try {
   await loadBook('base');
   _bookReady = true;
-  console.log('[BOOK] Base book ready');
 } catch(e) {
   console.error('[BOOK] Failed to load base book:', e);
 }
@@ -7208,7 +7052,6 @@ loadBook('super_buy_bonus');
 // Stale localStorage from old sessions must NOT corrupt a fresh game.
 const _savedState = loadGameState();
 if (_savedState && _savedState.inFS && _savedState.simSpins && _savedState.simSpins.length > 0 && RGS._roundActive) {
-  console.log('[RECOVERY] Resuming FS — fsLeft:', _savedState.fsLeft, 'spinIdx:', _savedState.simSpinIdx);
   // Restore full FS state
   bet = _savedState.bet || bet;
   inFS = true;
@@ -7261,16 +7104,13 @@ if (_savedState && _savedState.inFS && _savedState.simSpins && _savedState.simSp
   setTimeout(() => { if (inFS && !spinning) startSpin(); }, 1500);
 } else if (_savedState && _savedState.inFS && !RGS._roundActive) {
   // Stale FS state from old session — RGS has no active round. Just clear it.
-  console.log('[RECOVERY] Stale FS state (no active RGS round), clearing');
   clearGameState();
 } else if (_savedState && _savedState.inFS) {
   // Had FS state but no spin data — can't resume, end round cleanly
-  console.log('[RECOVERY] FS state without spin data, ending round');
   if (_savedState.bet) bet = _savedState.bet;
   clearGameState();
   if (RGS._roundActive) {
     RGS.endRound().then(() => {
-      console.log('[RECOVERY] Active round closed after reload');
       updateUI();
     }).catch(e => console.warn('[RECOVERY] endRound failed:', e));
   }
@@ -7279,7 +7119,6 @@ if (_savedState && _savedState.inFS && _savedState.simSpins && _savedState.simSp
   // If RGS has an active round but no saved FS state, close it too (Issue #3)
   if (RGS._roundActive && !inFS) {
     RGS.endRound().then(() => {
-      console.log('[RECOVERY] Stale round closed');
       updateUI();
     }).catch(e => console.warn('[RECOVERY] endRound failed:', e));
   }
@@ -7329,7 +7168,6 @@ window.addEventListener('keydown', e => {
   if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); return; }
   if (!spinning) startSpin();
 });
-console.log('SUGAR STACK ✓');
 
 if (IS_DEMO) {
   window.__test = {

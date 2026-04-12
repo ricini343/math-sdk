@@ -85,10 +85,9 @@ class GameConfig(Config):
             "scatter":    ["SC"],
         }
 
-        # Scatter trigger: 3 SC → 10 free spins (base and free game)
+        # Scatter trigger: 3 SC → 10 free spins (base game only, no retrigger)
         self.freespin_triggers = {
             self.basegame_type: {3: 10},
-            self.freegame_type: {3: 10},
         }
         self.anticipation_triggers = {
             self.basegame_type: 2,
@@ -167,7 +166,8 @@ class GameConfig(Config):
 
         # ── Bet Modes ─────────────────────────────────────────────
         maxwins = {
-            "base": 10000, "buy_bonus": 10000, "super_buy_bonus": 10000,
+            "base": 10000, "double_chance": 10000,
+            "buy_bonus": 10000, "super_buy_bonus": 10000,
         }
 
         self.bet_modes = [
@@ -184,6 +184,21 @@ class GameConfig(Config):
                     Distribution(criteria="freegame",  quota=0.10,   conditions=freegame_cond),
                     Distribution(criteria="0",         quota=0.40,   win_criteria=0.0,              conditions=zerowin_cond),
                     Distribution(criteria="basegame",  quota=0.489,  conditions=basegame_cond),
+                ],
+            ),
+            BetMode(
+                name="double_chance",
+                cost=1.5,
+                rtp=self.rtp,
+                max_win=maxwins["double_chance"],
+                auto_close_disabled=False,
+                is_feature=True,
+                is_buybonus=False,
+                distributions=[
+                    Distribution(criteria="wincap",    quota=0.001,  win_criteria=maxwins["double_chance"],  conditions=wincap_cond),
+                    Distribution(criteria="freegame",  quota=0.20,   conditions=freegame_cond),
+                    Distribution(criteria="0",         quota=0.35,   win_criteria=0.0,              conditions=zerowin_cond),
+                    Distribution(criteria="basegame",  quota=0.449,  conditions=basegame_cond),
                 ],
             ),
             BetMode(
