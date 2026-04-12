@@ -25,7 +25,7 @@ class OptimizationSetup:
                     "freegame": ConstructConditions(
                         rtp=0.40, hr=50, search_conditions={"kind": "scatter"}
                     ).return_dict(),
-                    "basegame": ConstructConditions(hr=3.5, rtp=0.56).return_dict(),
+                    "basegame": ConstructConditions(hr=3.5, rtp=0.55).return_dict(),
                 },
                 "scaling": ConstructScaling([
                     {"criteria": "basegame", "scale_factor": 1.2,  "win_range": (1,    5),    "probability": 1.0},
@@ -54,7 +54,7 @@ class OptimizationSetup:
                     "freegame": ConstructConditions(
                         rtp=0.50, hr=25, search_conditions={"kind": "scatter"}
                     ).return_dict(),
-                    "basegame": ConstructConditions(hr=3.5, rtp=0.46).return_dict(),
+                    "basegame": ConstructConditions(hr=3.5, rtp=0.45).return_dict(),
                 },
                 "scaling": ConstructScaling([
                     {"criteria": "basegame", "scale_factor": 1.2,  "win_range": (1,    5),    "probability": 1.0},
@@ -79,7 +79,7 @@ class OptimizationSetup:
                     "wincap": ConstructConditions(
                         rtp=0.01, av_win=wincaps["buy_bonus"], search_conditions=wincaps["buy_bonus"]
                     ).return_dict(),
-                    "freegame": ConstructConditions(rtp=0.96, hr="x").return_dict(),
+                    "freegame": ConstructConditions(rtp=0.95, hr="x").return_dict(),
                 },
                 "scaling": ConstructScaling([
                     {"criteria": "freegame", "scale_factor": 0.9,  "win_range": (10,   50),   "probability": 1.0},
@@ -103,7 +103,7 @@ class OptimizationSetup:
                     "wincap": ConstructConditions(
                         rtp=0.01, av_win=wincaps["super_buy_bonus"], search_conditions=wincaps["super_buy_bonus"]
                     ).return_dict(),
-                    "freegame": ConstructConditions(rtp=0.96, hr="x").return_dict(),
+                    "freegame": ConstructConditions(rtp=0.95, hr="x").return_dict(),
                 },
                 "scaling": ConstructScaling([
                     {"criteria": "freegame", "scale_factor": 0.8,  "win_range": (100,  500),   "probability": 1.0},
