@@ -30,5 +30,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sugar-stack-math
-          path: games/1_2_sugar_stack/library/publish_files/
+          path: |
+            games/1_2_sugar_stack/library/publish_files/
+            games/1_2_sugar_stack/library/configs/
           retention-days: 30
