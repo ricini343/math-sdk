@@ -81,7 +81,6 @@ class GameConfig(Config):
         # W is wild, SC is scatter (on reels 0, 2, 4 only)
         self.special_symbols = {
             "wild":       ["W"],
-            "multiplier": ["W"],
             "scatter":    ["SC"],
         }
 
