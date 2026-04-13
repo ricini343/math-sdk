@@ -105,8 +105,14 @@ class GameConfig(Config):
         }
 
         # ── Expanding Wild Multiplier Pool ────────────────────────
-        wild_mult_base = {2: 200, 3: 80, 5: 20, 10: 5, 20: 2, 50: 1, 100: 1}
+        # Base game: higher big-mult weights for visual bait (most don't connect)
+        wild_mult_base = {2: 160, 3: 70, 5: 20, 10: 10, 20: 6, 50: 4, 100: 3}
+
+        # Free spins: escalating pools (early → mid → late)
         wild_mult_bonus = {2: 200, 3: 80, 5: 30, 10: 10, 20: 5, 50: 2, 100: 1}
+        wild_mult_fs_early = {2: 220, 3: 90, 5: 20, 10: 5, 20: 2, 50: 1}
+        wild_mult_fs_mid   = {2: 100, 3: 80, 5: 40, 10: 15, 20: 5, 50: 2}
+        wild_mult_fs_late  = {3: 50, 5: 40, 10: 20, 20: 10, 50: 4, 100: 2}
 
         # ── Shared condition templates ────────────────────────────
         def _cond(force_fg, force_wincap, reel_base, reel_free=None):
@@ -119,6 +125,11 @@ class GameConfig(Config):
             if reel_free:
                 c["reel_weights"][self.freegame_type] = {reel_free: 1}
                 c["wild_mult_values"][self.freegame_type] = wild_mult_bonus
+                c["wild_mult_escalation"] = {
+                    "early": wild_mult_fs_early,
+                    "mid":   wild_mult_fs_mid,
+                    "late":  wild_mult_fs_late,
+                }
             return c
 
         freegame_cond = _cond(
@@ -142,6 +153,11 @@ class GameConfig(Config):
         wincap_cond["scatter_triggers"] = {3: 1}
         wincap_cond["wild_mult_values"][self.freegame_type] = {
             2: 150, 3: 60, 5: 30, 10: 15, 20: 8, 50: 3, 100: 2
+        }
+        wincap_cond["wild_mult_escalation"] = {
+            "early": {2: 180, 3: 70, 5: 25, 10: 8, 20: 4, 50: 2},
+            "mid":   {2: 80, 3: 60, 5: 35, 10: 18, 20: 8, 50: 3, 100: 1},
+            "late":  {3: 40, 5: 30, 10: 25, 20: 15, 50: 5, 100: 3},
         }
 
         # ── Bonus buy conditions ───────────────────────────────────

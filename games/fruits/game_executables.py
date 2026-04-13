@@ -13,6 +13,29 @@ from src.events.events import update_freespin_event
 
 class GameExecutables(GameCalculations):
 
+    def _get_wild_mult_pool(self) -> dict:
+        """Get the correct multiplier pool based on game phase.
+
+        During free spins with escalation configured:
+          Spins 1-4  → early pool  (mostly small mults)
+          Spins 5-7  → mid pool    (balanced)
+          Spins 8-10 → late pool   (big mults dominate)
+        Falls back to the standard pool if no escalation is set.
+        """
+        conditions = self.get_current_distribution_conditions()
+        escalation = conditions.get("wild_mult_escalation")
+
+        if escalation and hasattr(self, "fs") and hasattr(self, "tot_fs") and self.tot_fs > 0:
+            progress = self.fs / self.tot_fs
+            if progress <= 0.4:
+                return escalation["early"]
+            elif progress <= 0.7:
+                return escalation["mid"]
+            else:
+                return escalation["late"]
+
+        return conditions["wild_mult_values"][self.gametype]
+
     def find_wild_reels(self) -> list:
         """Find all reels that contain at least one W symbol."""
         wild_reels = []
@@ -30,9 +53,9 @@ class GameExecutables(GameCalculations):
             self.board[reel_index][row] = sym
 
     def assign_wild_reel_multiplier(self, reel_index: int) -> int:
-        """Assign a random multiplier from the pool to an expanded wild reel."""
-        conditions = self.get_current_distribution_conditions()
-        mult = get_random_outcome(conditions["wild_mult_values"][self.gametype])
+        """Assign a random multiplier from the escalation-aware pool."""
+        pool = self._get_wild_mult_pool()
+        mult = get_random_outcome(pool)
 
         for row in range(self.config.num_rows[reel_index]):
             sym = self.board[reel_index][row]
@@ -84,13 +107,18 @@ class GameExecutables(GameCalculations):
         self.run_freespin()
 
     def restore_sticky_wilds(self) -> None:
-        """Restore all sticky wild reels from previous free spins."""
+        """Restore sticky wild reels with RE-ROLLED multipliers each spin."""
+        pool = self._get_wild_mult_pool()
+
         for sw in self.sticky_wild_reels:
             reel_index = sw["reel"]
-            mult = sw["mult"]
+            # Re-roll multiplier from current phase pool
+            new_mult = get_random_outcome(pool)
+            sw["mult"] = new_mult
+
             for row in range(self.config.num_rows[reel_index]):
                 sym = self.create_symbol("W")
-                sym.assign_attribute({"multiplier": mult})
+                sym.assign_attribute({"multiplier": new_mult})
                 self.board[reel_index][row] = sym
 
     def add_sticky_wild_reels(self, expanded_wilds: list) -> None:

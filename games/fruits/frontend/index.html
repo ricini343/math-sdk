@@ -19,10 +19,11 @@ html { background:#000; }
 body {
   background: transparent;
   overflow: hidden;
-  width: 100vw; height: 100vh;
+  width: 100vw; height: 100dvh; height: 100vh;
   display: flex; align-items: center; justify-content: center;
   position: relative;
 }
+@supports (height: 100dvh) { body { height: 100dvh; } }
 /* Background image covers the full browser window — sits behind canvas via DOM order */
 #bgImg {
   position: fixed;
@@ -41,7 +42,7 @@ canvas { display: block; position: relative; background: transparent; z-index: 2
   pointer-events:none;
 }
 #portrait-spin-area > * { pointer-events:auto; }
-#portrait-spin-area .ps-row { display:flex; justify-content:center; align-items:center; gap:10px; }
+#portrait-spin-area .ps-row { display:flex; justify-content:center; align-items:center; gap:clamp(6px,2.5vw,14px); }
 /* Buy bonus — clean, no extra background */
 #portrait-spin-area .p-buy-wrap {
   height:50px; border:none; padding:0; background:#3d1a0a; border-radius:6px;
@@ -55,22 +56,23 @@ canvas { display: block; position: relative; background: transparent; z-index: 2
   white-space:nowrap; pointer-events:none;
 }
 #portrait-spin-area .p-buy-wrap:active img { filter:brightness(1.4); }
-/* +/- bet buttons */
+/* +/- bet buttons — candy theme matching utils */
 #portrait-spin-area .p-bet-btn {
-  width:40px; height:40px; border-radius:50%; border:none;
-  background:radial-gradient(circle at 40% 35%, #3d1a0a, #1a0800);
-  box-shadow:0 0 0 1.5px rgba(255,150,100,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
-  color:#ff9a50; font-size:22px; font-weight:bold; font-family:'Cherry Bomb One','Fredoka',sans-serif;
+  width:clamp(36px,9.5vw,44px); height:clamp(36px,9.5vw,44px); border-radius:50%; border:2px solid rgba(255,180,100,0.5);
+  background:radial-gradient(ellipse at 50% 30%, #6b2a0a 0%, #3d1200 50%, #1a0600 100%);
+  box-shadow:0 2px 6px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,220,180,0.2), 0 0 0 1px rgba(255,120,60,0.15);
+  color:#ffb060; font-size:clamp(18px,5vw,24px); font-weight:bold; font-family:'Cherry Bomb One','Fredoka',sans-serif;
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+  transition:border-color 0.15s, box-shadow 0.15s;
 }
-#portrait-spin-area .p-bet-btn:active { background:radial-gradient(circle at 40% 35%, #5a2a0a, #2a0800); box-shadow:0 0 0 1.5px #ff9a50; color:#ffd700; }
+#portrait-spin-area .p-bet-btn:active { background:radial-gradient(ellipse at 50% 30%, #8a3a10 0%, #5a2000 50%, #2a0800 100%); border-color:#ffd700; box-shadow:0 0 8px rgba(255,200,50,0.4), inset 0 1px 1px rgba(255,220,180,0.3); color:#ffd700; }
 /* Spin button — large and prominent */
 #portrait-spin-area .p-spin {
-  width:80px; height:80px; border:none; padding:0; background:none;
+  width:clamp(64px,17vw,84px); height:clamp(64px,17vw,84px); border:none; padding:0; background:none;
   cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
 }
-#portrait-spin-area .p-spin img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 12px rgba(255,150,100,0.6)); transition:transform 0.1s; }
+#portrait-spin-area .p-spin img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 14px rgba(255,150,100,0.7)) drop-shadow(0 2px 4px rgba(0,0,0,0.5)); transition:transform 0.1s; }
 #portrait-spin-area .p-spin:active img { transform:scale(0.92); }
 
 /* Portrait bottom bar — utils + values only */
@@ -98,6 +100,64 @@ canvas { display: block; position: relative; background: transparent; z-index: 2
   cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
 }
 #portrait-bar .p-util:active { color:#ffd700; background:rgba(255,255,255,0.08); }
+/* Portrait feature row — Buy Bonus + DC below reels */
+#portrait-features {
+  display:none; position:fixed; z-index:101; left:0; right:0;
+  touch-action:manipulation; -webkit-user-select:none; user-select:none;
+}
+#portrait-features .pf-row { display:flex; justify-content:center; align-items:center; gap:clamp(8px,3vw,16px); padding:0 clamp(12px,4vw,24px); }
+/* Buy Bonus — hot pink/magenta candy button */
+#portrait-features .pf-btn {
+  flex:1; max-width:clamp(130px,40vw,180px); height:clamp(46px,6.5vh,60px); border-radius:14px;
+  border:2.5px solid #ffd700;
+  background:linear-gradient(180deg, #e83a8a 0%, #c41870 30%, #9a1058 70%, #6a0840 100%);
+  box-shadow:0 3px 10px rgba(0,0,0,0.6), inset 0 2px 1px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.3), 0 0 12px rgba(232,58,138,0.3);
+  color:#fff; font:bold clamp(11px,2.8vw,14px)/1 'Cherry Bomb One','Fredoka',sans-serif; letter-spacing:1.5px;
+  text-shadow:0 1px 3px rgba(0,0,0,0.6), 0 0 8px rgba(255,255,255,0.2);
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  transition:transform 0.1s, box-shadow 0.15s;
+}
+#portrait-features .pf-btn:active { transform:scale(0.96); box-shadow:0 1px 4px rgba(0,0,0,0.6), inset 0 2px 1px rgba(255,255,255,0.15), inset 0 -1px 2px rgba(0,0,0,0.3); }
+/* DC button — purple/cyan candy with toggle indicator */
+#portrait-features .pf-btn.pf-dc {
+  background:linear-gradient(180deg, #7b4bbd 0%, #5a2d99 30%, #3e1a77 70%, #2a0e55 100%);
+  box-shadow:0 3px 10px rgba(0,0,0,0.6), inset 0 2px 1px rgba(255,255,255,0.2), inset 0 -2px 4px rgba(0,0,0,0.3), 0 0 12px rgba(123,75,189,0.3);
+  border-color:rgba(200,160,255,0.6);
+}
+#portrait-features .pf-btn.pf-dc .pf-toggle {
+  width:32px; height:16px; border-radius:8px; position:relative; flex-shrink:0;
+  background:rgba(0,0,0,0.4); border:1.5px solid rgba(255,255,255,0.2);
+  transition:background 0.2s, border-color 0.2s;
+}
+#portrait-features .pf-btn.pf-dc .pf-toggle-dot {
+  width:12px; height:12px; border-radius:50%; position:absolute; top:1px; left:1px;
+  background:radial-gradient(circle at 40% 35%, #888, #555);
+  transition:left 0.2s, background 0.2s, box-shadow 0.2s;
+}
+#portrait-features .pf-btn.dc-on {
+  background:linear-gradient(180deg, #8b5bd5 0%, #6a3db8 30%, #4e2299 70%, #361566 100%);
+  border-color:#44dd88;
+  box-shadow:0 3px 10px rgba(0,0,0,0.6), inset 0 2px 1px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.3), 0 0 14px rgba(68,221,136,0.4);
+}
+#portrait-features .pf-btn.dc-on .pf-toggle {
+  background:rgba(68,221,136,0.5); border-color:#44dd88;
+}
+#portrait-features .pf-btn.dc-on .pf-toggle-dot {
+  left:17px; background:radial-gradient(circle at 40% 35%, #66ffaa, #44dd88);
+  box-shadow:0 0 6px rgba(68,221,136,0.8);
+}
+/* Portrait bottom controls — candy-themed single row */
+#portrait-spin-area .p-util {
+  width:clamp(36px,9.5vw,44px); height:clamp(36px,9.5vw,44px); border-radius:50%; border:2px solid rgba(255,180,100,0.5);
+  background:radial-gradient(ellipse at 50% 30%, #6b2a0a 0%, #3d1200 50%, #1a0600 100%);
+  box-shadow:0 2px 6px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,220,180,0.2), 0 0 0 1px rgba(255,120,60,0.15);
+  color:rgba(255,200,140,0.7); font-size:clamp(13px,3.8vw,17px);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+  transition:border-color 0.15s, box-shadow 0.15s;
+}
+#portrait-spin-area .p-util:active { color:#ffd700; border-color:#ffd700; background:radial-gradient(ellipse at 50% 30%, #8a3a10 0%, #5a2000 50%, #2a0800 100%); box-shadow:0 0 8px rgba(255,200,50,0.4), inset 0 1px 1px rgba(255,220,180,0.3); }
 
 /* ── Confirm Purchase Modal (HTML/CSS overlay on top of PixiJS canvas) ── */
 .confirm-modal-overlay {
@@ -111,8 +171,8 @@ canvas { display: block; position: relative; background: transparent; z-index: 2
 }
 .confirm-modal-container {
   position: relative;
-  width: 700px;
-  height: 500px;
+  width: min(700px, 92vw);
+  height: min(500px, 70vh);
 }
 .confirm-panel-bg {
   position: absolute;
@@ -189,6 +249,16 @@ canvas { display: block; position: relative; background: transparent; z-index: 2
 .confirm-btn:active {
   transform: scale(0.98);
 }
+/* Small screens: scale down confirm modal (pop-out S + mobile) */
+@media (max-width:720px), (max-height:520px) {
+  .confirm-modal-container { width:min(85vw, 92vh * 1.4); height:auto; aspect-ratio:7/5; }
+  .confirm-content { padding:clamp(20px,5vw,60px) clamp(16px,4vw,80px); }
+  .confirm-title { font-size:clamp(16px,4vw,32px); }
+  .confirm-label { font-size:clamp(10px,2.5vw,18px); }
+  .confirm-price { font-size:clamp(24px,7vw,56px); margin-bottom:12px; }
+  .confirm-buttons { gap:clamp(10px,3vw,40px); }
+  .confirm-btn { width:clamp(80px,24vw,200px); height:clamp(36px,10vw,75px); font-size:clamp(12px,3.5vw,24px); border-radius:30px; }
+}
 </style>
 </head>
 <body>
@@ -254,20 +324,33 @@ function socLabel(text) {
   const map = {
     'PAYTABLE': 'SYMBOL VALUES',
     'PAYLINES': 'WINLINES', 'PAYLINE': 'WINLINE',
-    'PAID OUT': 'WIN', 'PAYS OUT': 'WON', 'PAY OUT': 'WIN',
+    'PAID OUT': 'WON', 'PAYS OUT': 'WON', 'PAY OUT': 'WIN',
     'PAYOUT MULTIPLIER': 'FINAL MULTIPLIER',
-    'PAYOUT': 'PRIZE', 'PAY': 'PRIZE',
-    'BUY BONUS': 'PLAY BONUS', 'BUY SUPER': 'PLAY SUPER', 'BUY FREE': 'PLAY FREE',
+    'PAYOUTS': 'PRIZES', 'PAYOUT': 'PRIZE',
+    'PAYER': 'WINNER',
+    'PAYS': 'WINS', 'PAID': 'WON', 'PAY': 'WIN',
+    'BONUS BUY': 'BONUS',
+    'BUY BONUS': 'GET BONUS', 'BUY SUPER': 'PLAY SUPER', 'BUY FREE': 'PLAY FREE',
+    'BOUGHT': 'INSTANTLY TRIGGERED',
     'PURCHASE': 'PLAY', 'BUY': 'PLAY',
     'WIN FEATURE': 'PLAY FEATURE',
-    'BASE BET': 'BASE PLAY',
+    'AT THE COST OF': 'FOR',
+    'COST OF': 'CAN BE PLAYED FOR',
     'COST MULTIPLIER': 'FEATURE MULTIPLIER',
-    'STAKE': 'PLAY AMOUNT',
     'TOTAL BET COST': 'TOTAL PLAY WORTH',
+    'TOTAL BET': 'TOTAL PLAY',
+    'BASE BET': 'BASE PLAY',
     'BET COST': 'PLAY WORTH',
+    'BETTING': 'PLAYING',
+    'BETS': 'PLAYS', 'BET': 'PLAY',
     'COST': 'WORTH', 'PRICE': 'WORTH',
-    'BET': 'PLAY AMOUNT',
-    'GAMBLING': 'GAMING',
+    'STAKE': 'PLAY AMOUNT',
+    'REBET': 'RESPIN',
+    'GAMBLING': 'GAMING', 'GAMBLE': 'PLAY',
+    'WAGER': 'PLAY',
+    'CASH': 'COINS', 'MONEY': 'COINS',
+    'CREDIT': 'COINS', 'CURRENCY': 'TOKEN',
+    'DEPOSIT': 'GET COINS', 'WITHDRAW': 'REDEEM',
     'REFUNDED': 'RESTORED',
   };
   // Build regex: longest phrases first to prevent partial matches
@@ -852,16 +935,33 @@ const app = new PIXI.Application({
 });
 document.body.appendChild(app.view);
 
-// Hide background image on small screens (canvas handles its own bg)
-if (_isMobile) {
-  const bgImg = document.getElementById('bgImg');
-  if (bgImg) { bgImg.style.display = 'none'; }
-}
+// Background stays visible on all devices
 
 function resize() {
-  const s = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
-  app.view.style.width  = (BASE_W * s) + 'px';
-  app.view.style.height = (BASE_H * s) + 'px';
+  var w = window.innerWidth, h = window.innerHeight;
+  var isPortrait = h > w * 1.2;
+  if (isPortrait) {
+    // Portrait: center grid horizontally, position below logo area
+    var s = (w * 0.84) / GRID_W;
+    var cw = Math.round(BASE_W * s);
+    var ch = Math.round(BASE_H * s);
+    var logoH = Math.round(w * 0.11);
+    var maxH = h - logoH - 150; // leave room for controls below
+    if (ch > maxH) { s = s * (maxH / ch); cw = Math.round(BASE_W * s); ch = Math.round(BASE_H * s); }
+    app.view.style.width = cw + 'px';
+    app.view.style.height = ch + 'px';
+    app.view.style.position = 'absolute';
+    var gridCenterCSS = (GRID_X + GRID_W / 2) * s;
+    app.view.style.left = Math.round(w / 2 - gridCenterCSS) + 'px';
+    app.view.style.top = (logoH + 22) + 'px';
+  } else {
+    var s = Math.min(w / BASE_W, h / BASE_H);
+    app.view.style.width  = (BASE_W * s) + 'px';
+    app.view.style.height = (BASE_H * s) + 'px';
+    app.view.style.position = '';
+    app.view.style.left = '';
+    app.view.style.top = '';
+  }
 }
 let _resizeTimer;
 window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(resize, 100); });
@@ -954,18 +1054,7 @@ await new Promise((resolve) => {
   // Hide screenDim during splash — no dark overlay on the splash background
   const screenDim = document.getElementById('screenDim');
   screenDim.style.setProperty('display', 'none', 'important');
-  var _splashFitScale = 0;
-  if (window.innerHeight > window.innerWidth * 1.2) {
-    var _splW = window.innerWidth, _splH = window.innerHeight;
-    _splashFitScale = (_splH * 0.92) / BASE_H;
-    var _splCW = Math.round(BASE_W * _splashFitScale);
-    var _splCH = Math.round(BASE_H * _splashFitScale);
-    app.view.style.width = _splCW + 'px';
-    app.view.style.height = _splCH + 'px';
-    app.view.style.position = 'absolute';
-    app.view.style.left = Math.round((_splW - _splCW) / 2) + 'px';
-    app.view.style.top = Math.round((_splH - _splCH) / 2) + 'px';
-  }
+  // Canvas already portrait-sized by resize() — no custom splash sizing needed
 
   // Logo — pinned near top with breathing room
   const logo = new PIXI.Sprite(T('logo'));
@@ -1029,7 +1118,8 @@ await new Promise((resolve) => {
   var _splashPS = 1;
   var _dots = [];
   if (_splashPortrait) {
-    var _visW = _splashFitScale > 0 ? (window.innerWidth / _splashFitScale) : 847;
+    var _canvasScale = parseFloat(app.view.style.width) / BASE_W;
+    var _visW = _canvasScale > 0 ? (window.innerWidth / _canvasScale) : 847;
     _splashPS = Math.min((_visW * 0.75) / CW, 1.8);
     logo.scale.set(380 / (logo.texture.width || 380)); logo.y = 15;
     var _cardY = 220;
@@ -1144,7 +1234,6 @@ await new Promise((resolve) => {
   splash.on('pointerdown', () => {
     splash.interactive = false;
     cleanups.forEach(fn => fn());
-    if (_splashFitScale > 0) { resize(); app.view.style.position = ''; app.view.style.left = ''; app.view.style.top = ''; }
     let fadeT = 0;
     const fadeFn = () => {
       fadeT += app.ticker.deltaMS; const fadeP = Math.min(fadeT / 400, 1); splash.alpha = 1 - fadeP;
@@ -1216,6 +1305,11 @@ function buildBetLevels(min, max, step) {
     lvls = [...new Set(sampled)].sort((a,b)=>a-b);
   }
   if(!lvls.length) lvls.push(min); betLevels=lvls;
+  // Restore persisted bet from previous session (survives refresh mid-spin)
+  try {
+    var savedBet = parseFloat(localStorage.getItem('sugarstack_bet'));
+    if (savedBet && !isNaN(savedBet) && betLevels.includes(savedBet)) bet = savedBet;
+  } catch(e) {}
   if(!betLevels.includes(bet)) bet=betLevels.reduce((p,c)=>Math.abs(c-bet)<Math.abs(p-bet)?c:p);
 }
 let spinning  = false;
@@ -1234,6 +1328,7 @@ let turboMode = 0;  // 0=normal, 1=fast, 2=turbo
 function _tSpd() { return turboMode === 2 ? 4 : turboMode === 1 ? 2 : 1; }
 let autoSpins = 0;       // 0=off, -1=∞, N>0=countdown
 let _turboBtn = null, _autoBtn = null, _autoPicker = null, _autoConfirm = null;
+var _desktopOnlyBtns = []; // PIXI containers hidden in portrait mode
 let lastWinLines = [];
 
 function showToast(msg) {
@@ -1665,6 +1760,7 @@ for (let r = 0; r < REELS; r++) {
   logo.x = gridRight + (BASE_W - gridRight) / 2 + 40;  // right of center in margin
   logo.y = GRID_Y + GRID_H * 0.3;                 // upper third of grid height
   layerUI.addChild(logo);
+  var _pixiLogo = logo;  // reference for portrait hide/show
   // Gentle breathing animation (~2s cycle)
   let logoBreathT = 0;
   app.ticker.add((dt) => {
@@ -1811,13 +1907,14 @@ let _turboLabel = null;
   // Position in left area (where Buy Bonus normally sits)
   fsBadgeCont.x = Math.max(FSW / 2 + 15, GRID_X / 2);
   fsBadgeCont.y = 260;
+  var _fsBadgeBaseY = 260; // mutable base for portrait repositioning
 
   // Floating bob animation
   let _fsBobTime = 0;
   let _fsBobActive = false;
   function _fsBobTick(dt) {
     _fsBobTime += dt * 0.03;
-    fsBadgeCont.y = 260 + Math.sin(_fsBobTime) * 2;
+    fsBadgeCont.y = _fsBadgeBaseY + Math.sin(_fsBobTime) * 2;
   }
 
   // Glow pulse animation
@@ -1887,7 +1984,7 @@ let _turboLabel = null;
       _fsBobActive = false;
       app.ticker.remove(_fsBobTick);
       app.ticker.remove(_fsGlowTick);
-      fsBadgeCont.y = 260;
+      fsBadgeCont.y = _fsBadgeBaseY;
       fsGlow.alpha = 0.12;
       fsGlow.tint = 0xffffff;
       _fsGlowTension = false;
@@ -1939,6 +2036,7 @@ let _turboLabel = null;
   _turboBtn = _makeMiniBtn('⚡', SPIN_X - 68, BAR_Y + 18, () => {
     turboMode = (turboMode + 1) % 3; _updateTurboBtn();
   });
+  _desktopOnlyBtns.push(_turboBtn.c);
   _updateTurboBtn(); // set initial dimmed state
   _autoBtn = _makeMiniBtn('AUTO', SPIN_X + 68, BAR_Y + 18, () => {
     if (inFS) return; // no autoplay during bonus
@@ -1946,6 +2044,7 @@ let _turboLabel = null;
     else if (_autoPicker && _autoPicker.visible) { _hideAutoPicker(); _hideAutoConfirm(); }
     else _showAutoPicker();
   });
+  _desktopOnlyBtns.push(_autoBtn.c);
   _updateAutoBtn(); // set initial dimmed state
 
   // ── FULLSCREEN button ──
@@ -1953,6 +2052,7 @@ let _turboLabel = null;
     if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
     else document.exitFullscreen().catch(()=>{});
   });
+  _desktopOnlyBtns.push(_fsBtn.c);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1974,6 +2074,8 @@ function _lockGameUI() {
   layerUI.visible = false;
   var pb = document.getElementById('portrait-bar');
   if (pb) pb.style.display = 'none';
+  if (typeof _portraitSpinArea !== 'undefined' && _portraitSpinArea) _portraitSpinArea.style.display = 'none';
+  if (typeof _portraitFeatures !== 'undefined' && _portraitFeatures) _portraitFeatures.style.display = 'none';
 }
 function _unlockGameUI() {
   _uiLockCount = Math.max(0, _uiLockCount - 1);
@@ -1981,6 +2083,12 @@ function _unlockGameUI() {
     layerUI.visible = true;
     var pb = document.getElementById('portrait-bar');
     if (pb) pb.style.display = '';
+    // Restore portrait elements only if actually in portrait mode
+    var _pw = window.innerWidth, _ph = window.innerHeight;
+    if (_ph > _pw * 1.2) {
+      if (typeof _portraitSpinArea !== 'undefined' && _portraitSpinArea) _portraitSpinArea.style.display = 'flex';
+      if (typeof _portraitFeatures !== 'undefined' && _portraitFeatures) _portraitFeatures.style.display = 'block';
+    }
   }
 }
 
@@ -2076,7 +2184,7 @@ const BONUS_FS_SUPER    = 10;
   dcCard.addChild(dcBg);
 
   // "BET" label
-  const dcBetLabel = new PIXI.Text('BET', {
+  const dcBetLabel = new PIXI.Text(socLabel('BET'), {
     fontFamily: 'Cherry Bomb One, Fredoka, Georgia', fontSize: 13,
     fill: 0xdaa520, letterSpacing: 2,
   });
@@ -2229,6 +2337,16 @@ function showBuyBonusModal() {
   modal._tickerFns = [];
   app.stage.addChild(modal);
 
+  // ── Full-screen PIXI tap catcher — closes modal on outside tap ──
+  const tapCatcher = new PIXI.Graphics();
+  tapCatcher.beginFill(0x000000, 0.001); // near-invisible but interactive
+  tapCatcher.drawRect(-200, -200, BASE_W + 400, BASE_H + 400);
+  tapCatcher.endFill();
+  tapCatcher.interactive = true;
+  tapCatcher.cursor = 'pointer';
+  tapCatcher.on('pointerdown', () => { playSound('button_click'); closeBuyBonus(); });
+  modal.addChild(tapCatcher);
+
   // ── Background plate — AI candy frame (no baked text), scaled up ──
   const plateTex = PIXI.Texture.from(assetMap['bonus_select_plate']);
   const plate = new PIXI.Sprite(plateTex);
@@ -2239,6 +2357,7 @@ function showBuyBonusModal() {
   plate.width = PLATE_W; plate.height = PLATE_H;
   plate.x = (BASE_W - PLATE_W) / 2;
   plate.y = (BASE_H - PLATE_H) / 2;
+  plate.interactive = true; // block taps from reaching tapCatcher behind
   modal.addChild(plate);
 
   // ── Title text — code-rendered to avoid AI typos ──
@@ -2269,14 +2388,13 @@ function showBuyBonusModal() {
     cont.addChild(cardSprite);
 
     // Price text — overlaid on lollipop stick area (lower-center of card)
-    const cost = costMult * bet;
     const priceGlow = new PIXI.Graphics();
     priceGlow.beginFill(0x000000, 0.35);
     priceGlow.drawRoundedRect(CW / 2 - 70, CH * 0.62 - 16, 140, 34, 10);
     priceGlow.endFill();
     cont.addChild(priceGlow);
 
-    const priceTxt = new PIXI.Text(formatMoney(cost), {
+    const priceTxt = new PIXI.Text(formatMoney(costMult * bet), {
       fontFamily: 'Cherry Bomb One, Fredoka, Georgia', fontSize: 24, fontWeight: 'bold',
       fill: [0xffd700, 0xffffff, 0xffd700], fillGradientStops: [0, 0.5, 1],
       stroke: 0x2a0800, strokeThickness: 4,
@@ -2284,6 +2402,8 @@ function showBuyBonusModal() {
     priceTxt.anchor.set(0.5);
     priceTxt.x = CW / 2; priceTxt.y = CH * 0.63;
     cont.addChild(priceTxt);
+
+    function updatePrice() { priceTxt.text = formatMoney(costMult * bet); }
 
     // Hover — scale + glow pulse
     let _pulseT = 0, _pulseFn = null;
@@ -2303,18 +2423,19 @@ function showBuyBonusModal() {
       if (_pulseFn) { app.ticker.remove(_pulseFn); _pulseFn = null; }
     });
 
-    // Click — open confirmation
+    // Click — open confirmation (cost computed at click time, not capture time)
     cont.on('pointerdown', () => {
-      if (balance >= cost) {
+      var currentCost = costMult * bet;
+      if (balance >= currentCost) {
         playSound('button_click');
-        _showConfirmation(cost, () => onBuy(cost));
+        _showConfirmation(currentCost, () => onBuy(currentCost));
       } else {
         showToast('INSUFFICIENT BALANCE');
       }
     });
 
     modal.addChild(cont);
-    return { card: cont, priceTxt };
+    return { card: cont, priceTxt, updatePrice };
   }
 
   // ── Left card: Free Spins ──
@@ -2347,6 +2468,193 @@ function showBuyBonusModal() {
       startSpin();
     }
   );
+
+  // ── Balance / Bet row(s) — bottom of plate, inside frame ──
+  const rowY = cardY + CH + 28;
+  const ROW_FONT = 'Cherry Bomb One, Fredoka, Georgia';
+  const _modalIsPortrait = window.innerHeight > window.innerWidth * 1.2;
+  const plateLX = (BASE_W - PLATE_W) / 2;
+  const plateRX = (BASE_W + PLATE_W) / 2;
+  const plateCX = BASE_W / 2;
+
+  if (_modalIsPortrait) {
+    // ── PORTRAIT: Two rows — Balance centered, then Bet centered with big buttons ──
+    const bgH = 100;
+    const rowBg = new PIXI.Graphics();
+    rowBg.beginFill(0x000000, 0.35);
+    rowBg.drawRoundedRect(plateLX + 30, rowY - 8, PLATE_W - 60, bgH, 10);
+    rowBg.endFill();
+    modal.addChild(rowBg);
+
+    // ROW 1: BALANCE — centered
+    const balRow1Y = rowY + 10;
+    const balLbl = new PIXI.Text('BALANCE', {
+      fontFamily: ROW_FONT, fontSize: 14, fill: 0xb08050, letterSpacing: 2,
+    });
+    balLbl.anchor.set(0.5, 0.5);
+    balLbl.x = plateCX - 60;
+    balLbl.y = balRow1Y;
+    modal.addChild(balLbl);
+
+    var balVal = new PIXI.Text(formatMoney(balance), {
+      fontFamily: ROW_FONT, fontSize: 24, fontWeight: 'bold',
+      fill: 0xffffff, stroke: 0x2a0800, strokeThickness: 3,
+    });
+    balVal.anchor.set(0, 0.5);
+    balVal.x = plateCX - 20;
+    balVal.y = balRow1Y;
+    modal.addChild(balVal);
+
+    // ROW 2: BET — centered with big −/+ buttons (radius 26 for ~50px tap targets after scale)
+    const betRow2Y = rowY + 55;
+    const BTN_R = 26;
+
+    const betLbl = new PIXI.Text(socLabel('BET'), {
+      fontFamily: ROW_FONT, fontSize: 14, fill: 0xb08050, letterSpacing: 2,
+    });
+    betLbl.anchor.set(0.5, 0.5);
+    betLbl.x = plateCX - 130;
+    betLbl.y = betRow2Y;
+    modal.addChild(betLbl);
+
+    // − button (big)
+    var minusBtn = new PIXI.Container();
+    minusBtn.x = plateCX - 70; minusBtn.y = betRow2Y;
+    minusBtn.interactive = true; minusBtn.cursor = 'pointer';
+    var minusBg = new PIXI.Graphics();
+    minusBg.beginFill(0x3d1a0a, 0.9); minusBg.lineStyle(2, 0xffd700, 0.7);
+    minusBg.drawCircle(0, 0, BTN_R); minusBg.endFill();
+    minusBtn.addChild(minusBg);
+    var minusTxt = new PIXI.Text('−', { fontFamily: ROW_FONT, fontSize: 28, fontWeight: 'bold', fill: 0xffb060 });
+    minusTxt.anchor.set(0.5); minusTxt.y = -1;
+    minusBtn.addChild(minusTxt);
+    modal.addChild(minusBtn);
+
+    // Bet value (centered)
+    var betVal = new PIXI.Text(formatMoney(bet), {
+      fontFamily: ROW_FONT, fontSize: 26, fontWeight: 'bold',
+      fill: 0xffd700, stroke: 0x2a0800, strokeThickness: 3,
+    });
+    betVal.anchor.set(0.5, 0.5);
+    betVal.x = plateCX;
+    betVal.y = betRow2Y;
+    modal.addChild(betVal);
+
+    // + button (big)
+    var plusBtn = new PIXI.Container();
+    plusBtn.x = plateCX + 70; plusBtn.y = betRow2Y;
+    plusBtn.interactive = true; plusBtn.cursor = 'pointer';
+    var plusBg = new PIXI.Graphics();
+    plusBg.beginFill(0x3d1a0a, 0.9); plusBg.lineStyle(2, 0xffd700, 0.7);
+    plusBg.drawCircle(0, 0, BTN_R); plusBg.endFill();
+    plusBtn.addChild(plusBg);
+    var plusTxt = new PIXI.Text('+', { fontFamily: ROW_FONT, fontSize: 28, fontWeight: 'bold', fill: 0xffb060 });
+    plusTxt.anchor.set(0.5); plusTxt.y = -1;
+    plusBtn.addChild(plusTxt);
+    modal.addChild(plusBtn);
+
+  } else {
+    // ── DESKTOP: Single row — Balance left, Bet right with −/+ ──
+    const rowBg = new PIXI.Graphics();
+    rowBg.beginFill(0x000000, 0.35);
+    rowBg.drawRoundedRect(plateLX + 30, rowY - 8, PLATE_W - 60, 52, 10);
+    rowBg.endFill();
+    modal.addChild(rowBg);
+
+    // BALANCE — left side
+    const balLbl = new PIXI.Text('BALANCE', {
+      fontFamily: ROW_FONT, fontSize: 12, fill: 0xb08050, letterSpacing: 2,
+    });
+    balLbl.anchor.set(0, 0.5);
+    balLbl.x = plateLX + 55;
+    balLbl.y = rowY + 8;
+    modal.addChild(balLbl);
+
+    var balVal = new PIXI.Text(formatMoney(balance), {
+      fontFamily: ROW_FONT, fontSize: 22, fontWeight: 'bold',
+      fill: 0xffffff, stroke: 0x2a0800, strokeThickness: 3,
+    });
+    balVal.anchor.set(0, 0.5);
+    balVal.x = balLbl.x + balLbl.width + 12;
+    balVal.y = rowY + 10;
+    modal.addChild(balVal);
+
+    // BET — right side with −/+ buttons
+    const betRightX = plateRX - 55;
+
+    // + button
+    var plusBtn = new PIXI.Container();
+    plusBtn.x = betRightX; plusBtn.y = rowY + 10;
+    plusBtn.interactive = true; plusBtn.cursor = 'pointer';
+    var plusBg = new PIXI.Graphics();
+    plusBg.beginFill(0x3d1a0a, 0.9); plusBg.lineStyle(1.5, 0xffd700, 0.6);
+    plusBg.drawCircle(0, 0, 16); plusBg.endFill();
+    plusBtn.addChild(plusBg);
+    var plusTxt = new PIXI.Text('+', { fontFamily: ROW_FONT, fontSize: 20, fontWeight: 'bold', fill: 0xffb060 });
+    plusTxt.anchor.set(0.5); plusTxt.y = -1;
+    plusBtn.addChild(plusTxt);
+    modal.addChild(plusBtn);
+
+    // Bet value
+    var betVal = new PIXI.Text(formatMoney(bet), {
+      fontFamily: ROW_FONT, fontSize: 22, fontWeight: 'bold',
+      fill: 0xffd700, stroke: 0x2a0800, strokeThickness: 3,
+    });
+    betVal.anchor.set(1, 0.5);
+    betVal.x = betRightX - 38;
+    betVal.y = rowY + 10;
+    modal.addChild(betVal);
+
+    // − button
+    var minusBtn = new PIXI.Container();
+    minusBtn.x = betVal.x - betVal.width - 12; minusBtn.y = rowY + 10;
+    minusBtn.interactive = true; minusBtn.cursor = 'pointer';
+    var minusBg = new PIXI.Graphics();
+    minusBg.beginFill(0x3d1a0a, 0.9); minusBg.lineStyle(1.5, 0xffd700, 0.6);
+    minusBg.drawCircle(0, 0, 16); minusBg.endFill();
+    minusBtn.addChild(minusBg);
+    var minusTxt = new PIXI.Text('−', { fontFamily: ROW_FONT, fontSize: 20, fontWeight: 'bold', fill: 0xffb060 });
+    minusTxt.anchor.set(0.5); minusTxt.y = -1;
+    minusBtn.addChild(minusTxt);
+    modal.addChild(minusBtn);
+
+    // BET label — left of minus button
+    const betLbl = new PIXI.Text(socLabel('BET'), {
+      fontFamily: ROW_FONT, fontSize: 12, fill: 0xb08050, letterSpacing: 2,
+    });
+    betLbl.anchor.set(1, 0.5);
+    betLbl.x = minusBtn.x - 24;
+    betLbl.y = rowY + 8;
+    modal.addChild(betLbl);
+  }
+
+  // Update all prices and displays when bet changes
+  function _modalBetUpdate() {
+    betVal.text = formatMoney(bet);
+    balVal.text = formatMoney(balance);
+    leftCard.updatePrice();
+    rightCard.updatePrice();
+    if (!_modalIsPortrait) {
+      // Reposition minus button (bet value width may change) — desktop only
+      minusBtn.x = betVal.x - betVal.width - 12;
+      // betLbl repositioning not needed in portrait (centered layout)
+    }
+    updateUI();
+  }
+
+  minusBtn.on('pointerdown', () => {
+    var i = betLevels.indexOf(bet);
+    if (i > 0) { bet = betLevels[i - 1]; playSound('button_click'); _modalBetUpdate(); }
+  });
+  minusBtn.on('pointerover', () => { minusBg.tint = 0xffcc88; minusBtn.scale.set(1.1); });
+  minusBtn.on('pointerout', () => { minusBg.tint = 0xffffff; minusBtn.scale.set(1.0); });
+
+  plusBtn.on('pointerdown', () => {
+    var i = betLevels.indexOf(bet);
+    if (i < betLevels.length - 1) { bet = betLevels[i + 1]; playSound('button_click'); _modalBetUpdate(); }
+  });
+  plusBtn.on('pointerover', () => { plusBg.tint = 0xffcc88; plusBtn.scale.set(1.1); });
+  plusBtn.on('pointerout', () => { plusBg.tint = 0xffffff; plusBtn.scale.set(1.0); });
 
   // ── Close button (X) — top right of plate ──
   const closeBtn = new PIXI.Container();
@@ -2384,8 +2692,8 @@ function showBuyBonusModal() {
       <div class="confirm-modal-container">
         <img src="assets/confirm_panel.png" class="confirm-panel-bg" alt="" />
         <div class="confirm-content">
-          <h1 class="confirm-title">CONFIRM PURCHASE</h1>
-          <p class="confirm-label">TOTAL COST</p>
+          <h1 class="confirm-title">${socLabel('CONFIRM PURCHASE')}</h1>
+          <p class="confirm-label">${socLabel('TOTAL COST')}</p>
           <p class="confirm-price">${formatMoney(cost)}</p>
           <div class="confirm-buttons">
             <button class="confirm-btn cancel-btn" data-action="cancel">CANCEL</button>
@@ -2427,6 +2735,28 @@ function showBuyBonusModal() {
     // Store ref for cleanup on closeBuyBonus
     modal._confirmOverlay = overlayEl;
   }
+
+  // ── Scaling — shrink modal to fit small screens (portrait + pop-out S) ──
+  (function() {
+    var pw = window.innerWidth, ph = window.innerHeight;
+    var canvasScale = Math.min(pw / BASE_W, ph / BASE_H);
+    if (ph > pw * 1.2) {
+      // Portrait: scale based on width
+      canvasScale = (pw * 0.84) / GRID_W;
+      var mScale = Math.min(pw * 0.88 / (PLATE_W * canvasScale), 1.0);
+      modal.scale.set(mScale);
+      modal.x = (BASE_W - BASE_W * mScale) / 2;
+      modal.y = (BASE_H - BASE_H * mScale) / 2;
+    } else if (pw < 800 || ph < 550) {
+      // Small pop-out window: scale to fit
+      var plateScaledW = PLATE_W * canvasScale;
+      var plateScaledH = PLATE_H * canvasScale;
+      var mScale = Math.min(pw * 0.92 / plateScaledW, ph * 0.92 / plateScaledH, 1.0);
+      modal.scale.set(mScale);
+      modal.x = (BASE_W - BASE_W * mScale) / 2;
+      modal.y = (BASE_H - BASE_H * mScale) / 2;
+    }
+  })();
 
   // Animate in — simple fade
   modal.alpha = 0;
@@ -2498,6 +2828,7 @@ function makeBtn(label, x, y, cb) {
   c.on('pointerover', () => c.scale.set(1.08));
   c.on('pointerout',  () => c.scale.set(1.0));
   layerUI.addChild(c);
+  _desktopOnlyBtns.push(c);
 }
 
 function makeSpinBtn(x, y) {
@@ -2585,6 +2916,7 @@ function makeSpinBtn(x, y) {
   });
 
   layerUI.addChild(c);
+  _desktopOnlyBtns.push(c);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2925,6 +3257,8 @@ function startSpin() {
   clearWinLines();
   playSound('spin_start');
   playSound('spin_loop');
+  // Persist bet so refresh mid-spin restores the correct amount
+  try { localStorage.setItem('sugarstack_bet', String(bet)); } catch(e) {}
   // betEvent for FS: round is already active, safe to send immediately
   if (inFS) RGS.betEvent('freespin');
 
@@ -4152,6 +4486,17 @@ function showWinCelebration(winAmount, onComplete) {
     tierGlow.style.fill = t.glow;
     tierGlow.style.stroke = t.glow;
     counterText.style.fontSize = t.amountSize;
+    // Auto-shrink tier text to fit banner on mobile portrait
+    var _pw = window.innerWidth, _ph = window.innerHeight;
+    if (_ph > _pw * 1.2) {
+      tierLabel.updateText(true);
+      var maxW = FRAME_W * 0.82;
+      if (tierLabel.width > maxW) {
+        var shrink = maxW / tierLabel.width;
+        tierLabel.style.fontSize = Math.floor(t.fontSize * shrink);
+        tierGlow.style.fontSize = Math.floor(t.fontSize * shrink);
+      }
+    }
     if (idx > 0) playSound(t.sound);
   }
   function triggerShake(v) { shakeIntensity = v; }
@@ -6501,7 +6846,7 @@ function _showGameInfoHTML() {
   var html = '';
 
   // ── PAYTABLE ──
-  html += secTitle('PAYTABLE');
+  html += secTitle(socLabel('PAYTABLE'));
 
   // High pay symbols — with subtle glow behind premium ones
   var _hiGlow = {watermelon:'rgba(255,50,80,0.12)',grape:'rgba(160,50,255,0.12)',orange:'rgba(255,160,0,0.12)',cherry:'rgba(255,40,60,0.12)',plum:'rgba(180,80,200,0.12)',lemon:'rgba(255,230,0,0.12)'};
@@ -6588,7 +6933,7 @@ function _showGameInfoHTML() {
   html += divider();
 
   // ── PAYLINES ──
-  html += secTitle('PAYLINES');
+  html += secTitle(socLabel('PAYLINES'));
   html += '<div style="text-align:center;font-size:12px;color:#aaa;margin:0 0 10px;">' + socLabel('20 paylines \u2014 wins pay left to right on adjacent reels') + '</div>';
   // Draw paylines as small inline SVG diagrams
   var plColors = ['#f44','#4f4','#48f','#fa0','#f4f','#4ff','#ff4','#f84','#8f4','#44f',
@@ -6624,7 +6969,7 @@ function _showGameInfoHTML() {
   html += divider();
 
   // ── BUY BONUS ──
-  html += secTitle('BUY BONUS');
+  html += secTitle(socLabel('BUY BONUS'));
   html += '<div class="info-feature-card" style="' + cardStyle() + 'padding:18px 22px;margin:14px auto;max-width:640px;">';
   html += '<div style="font-family:Cherry Bomb One,Fredoka,Georgia;font-size:' + _fs.sub + 'px;font-weight:bold;letter-spacing:1px;' +
     'background:linear-gradient(180deg,#ffe57f,#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;' +
@@ -6711,11 +7056,10 @@ function _showGameInfoHTML() {
     'SUGAR STACK is a game of chance. Past results do not guarantee future outcomes.<br><br>' +
     'This game uses a certified Random Number Generator (RNG) to determine all game outcomes. The theoretical Return to Player (RTP) is 96.00%.<br><br>' +
     socLabel('The maximum win per round is capped at 10,000\u00D7 the bet amount. ') +
-    socLabel('Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds.<br><br>') +
+    socLabel('Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Winnings are settled according to the amount received from the Remote Game Server and not from events within the web browser. TM and \u00A9 2026 Stake Engine.<br><br>') +
     socLabel('Please play responsibly. If you feel you may have a gambling problem, please seek help at a certified support organization.') +
     '</div>';
   html += '</div>';
-  html += '<div style="text-align:center;font-size:11px;color:#5a4a3a;font-style:italic;margin:24px 0 8px;">\u00A9 2026 Stake Engine. All rights reserved.</div>';
 
   // Append content to panel (not overlay)
   panel.innerHTML += html;
@@ -6759,12 +7103,42 @@ const _portraitSpinArea = document.createElement('div');
 _portraitSpinArea.id = 'portrait-spin-area';
 _portraitSpinArea.innerHTML =
   '<div class="ps-row">' +
-    '<button class="p-buy-wrap" id="p-buy"><img src="assets/buy_card.png" alt=""><span>' + socLabel('BUY\nBONUS') + '</span></button>' +
+    '<button class="p-util" id="p-info2">\u24D8</button>' +
+    '<button class="p-util" id="p-sound2">\u266B</button>' +
+    '<button class="p-util" id="p-turbo2">\u26A1</button>' +
+    '<button class="p-util" id="p-auto2" style="font-size:clamp(8px,2vw,10px);font-weight:bold;letter-spacing:1px;">AUTO</button>' +
     '<button class="p-bet-btn" id="p-minus">\u2212</button>' +
     '<button class="p-spin" id="p-spin"><img src="assets/spin_btn.png" alt="SPIN"></button>' +
     '<button class="p-bet-btn" id="p-plus">+</button>' +
   '</div>';
 document.body.appendChild(_portraitSpinArea);
+
+// Portrait feature row — Buy Bonus + DC below reels
+var _portraitFeatures = document.createElement('div');
+_portraitFeatures.id = 'portrait-features';
+_portraitFeatures.innerHTML =
+  '<div class="pf-row">' +
+    '<button class="pf-btn" id="pf-buy">\uD83C\uDF6D BUY BONUS</button>' +
+    '<button class="pf-btn pf-dc' + (doubleChanceEnabled ? ' dc-on' : '') + '" id="pf-dc">' +
+      '<span>2\u00D7 CHANCE</span>' +
+      '<div class="pf-toggle"><div class="pf-toggle-dot"></div></div>' +
+    '</button>' +
+  '</div>';
+document.body.appendChild(_portraitFeatures);
+
+// Portrait free spins counter — HTML element between canvas and feature row
+var _portraitFS = document.createElement('div');
+_portraitFS.id = 'portrait-fs';
+_portraitFS.style.cssText = 'display:none;position:fixed;z-index:102;left:0;right:0;text-align:center;pointer-events:none;';
+_portraitFS.innerHTML =
+  '<div style="display:inline-block;background:radial-gradient(ellipse at 50% 25%,#5a1800 0%,#2a0800 60%,#0a0200 100%);' +
+  'border:2px solid #ffd700;border-radius:12px;padding:4px 18px 6px;' +
+  'box-shadow:0 0 12px rgba(255,200,50,0.3),inset 0 1px 1px rgba(255,220,180,0.15),0 2px 6px rgba(0,0,0,0.5);">' +
+  '<div style="font:bold 8px/1 Cherry Bomb One,Fredoka,sans-serif;color:#fff8e0;letter-spacing:2px;margin-bottom:2px;' +
+  'text-shadow:0 1px 3px rgba(0,0,0,0.8);">FREE SPINS LEFT</div>' +
+  '<div id="pf-fs-num" style="font:bold 22px/1 Cherry Bomb One,Fredoka,sans-serif;color:#ffd700;' +
+  'text-shadow:0 0 10px rgba(255,200,50,0.6),2px 2px 0 #8b4513;">10</div></div>';
+document.body.appendChild(_portraitFS);
 
 // Bottom bar — utilities + values
 const _portraitBar = document.createElement('div');
@@ -6775,6 +7149,7 @@ _portraitBar.innerHTML =
     '<button class="p-util" id="p-sound">\u266B</button>' +
     '<button class="p-util" id="p-turbo">\u26A1</button>' +
     '<button class="p-util" id="p-auto" style="font-size:9px;font-weight:bold;letter-spacing:1px;">AUTO</button>' +
+    '<button class="p-util" id="p-dc" style="font-size:7px;font-weight:bold;letter-spacing:0.5px;' + (doubleChanceEnabled ? 'color:#44dd88;box-shadow:0 0 0 1.5px #44dd88;' : '') + '">2\u00D7</button>' +
   '</div>' +
   '<div class="p-vals">' +
     '<div class="p-stat"><div class="p-lbl">' + socLabel('BALANCE') + '</div><div class="p-val" id="p-bal">0.00</div></div>' +
@@ -6799,10 +7174,68 @@ document.getElementById('p-plus').addEventListener('pointerdown', function(e){
   e.preventDefault(); if (spinning || inFS) return;
   var i = betLevels.indexOf(bet); if (i < betLevels.length - 1) { bet = betLevels[i + 1]; updateUI(); }
 });
-document.getElementById('p-buy').addEventListener('pointerdown', function(e){
+// Wire new spin-area utility buttons
+document.getElementById('p-info2').addEventListener('pointerdown', function(e){
+  e.preventDefault(); showGameInfo();
+});
+document.getElementById('p-sound2').addEventListener('pointerdown', function(e){
+  e.preventDefault(); toggleSound();
+  this.style.opacity = soundEnabled ? '1' : '0.4';
+});
+document.getElementById('p-turbo2').addEventListener('pointerdown', function(e){
+  e.preventDefault(); turboMode = (turboMode + 1) % 3; _updateTurboBtn();
+  _syncPortraitTurbo();
+});
+function _syncPortraitTurbo() {
+  var tb = document.getElementById('p-turbo2');
+  if (!tb) return;
+  tb.style.position = 'relative';
+  tb.style.overflow = 'visible';
+  tb.style.flexDirection = 'column';
+  tb.style.gap = '0';
+  tb.style.lineHeight = '1';
+  tb.style.padding = '0';
+  if (turboMode === 0) {
+    tb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M13 2L4 14h7v8l9-12h-7z" fill="#b08050" stroke="#5a3020" stroke-width="1.5"/></svg>';
+    tb.style.background = 'radial-gradient(ellipse at 50% 30%, #6b2a0a 0%, #3d1200 50%, #1a0600 100%)';
+    tb.style.borderColor = 'rgba(255,180,100,0.5)';
+    tb.style.boxShadow = '0 2px 6px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,220,180,0.2)';
+  } else if (turboMode === 1) {
+    tb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M13 2L4 14h7v8l9-12h-7z" fill="#ffd700" stroke="#8b4513" stroke-width="1.5"/></svg>' +
+      '<span style="font-size:7px;color:#ffd700;font-weight:bold;text-shadow:0 0 4px rgba(255,200,50,0.8);margin-top:-2px;">FAST</span>';
+    tb.style.background = 'radial-gradient(ellipse at 50% 30%, #7a3a00 0%, #4a1800 50%, #1a0600 100%)';
+    tb.style.borderColor = '#ffcc44';
+    tb.style.boxShadow = '0 2px 6px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,220,180,0.25), 0 0 10px rgba(255,200,50,0.4)';
+  } else {
+    tb.innerHTML = '<div style="display:flex;gap:0;align-items:center;"><svg width="12" height="14" viewBox="0 0 24 24"><path d="M13 2L4 14h7v8l9-12h-7z" fill="#ff6688" stroke="#8b2040" stroke-width="1.5"/></svg>' +
+      '<svg width="12" height="14" viewBox="0 0 24 24" style="margin-left:-4px;"><path d="M13 2L4 14h7v8l9-12h-7z" fill="#ff4466" stroke="#8b2040" stroke-width="1.5"/></svg></div>' +
+      '<span style="font-size:7px;color:#ff6688;font-weight:bold;text-shadow:0 0 4px rgba(255,80,120,0.8);margin-top:-2px;">MAX</span>';
+    tb.style.background = 'radial-gradient(ellipse at 50% 30%, #6a1030 0%, #3d0818 50%, #1a0208 100%)';
+    tb.style.borderColor = '#ff6688';
+    tb.style.boxShadow = '0 2px 6px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,180,200,0.2), 0 0 12px rgba(255,80,120,0.5)';
+  }
+}
+_syncPortraitTurbo();
+document.getElementById('p-auto2').addEventListener('pointerdown', function(e){
+  e.preventDefault();
+  if (autoSpins !== 0) { autoSpins = 0; _updateAutoBtn(); if (typeof _syncPortraitAuto === 'function') _syncPortraitAuto(); return; }
+  _showPortraitAutoPicker();
+});
+// Wire portrait feature row buttons
+document.getElementById('pf-buy').addEventListener('pointerdown', function(e){
   e.preventDefault(); if (!spinning && !inFS) showBuyBonusModal();
 });
-// Wire portrait bottom bar button handlers
+document.getElementById('pf-dc').addEventListener('pointerdown', function(e){
+  e.preventDefault(); if (spinning || inFS) return;
+  doubleChanceEnabled = !doubleChanceEnabled;
+  localStorage.setItem('doubleChance', doubleChanceEnabled);
+  updateUI();
+  playSound('button_click');
+  this.classList.toggle('dc-on', doubleChanceEnabled);
+  var dcLabel = this.querySelector('span');
+  if (dcLabel) dcLabel.textContent = doubleChanceEnabled ? '2\u00D7 ON' : '2\u00D7 CHANCE';
+});
+// Wire portrait bottom bar button handlers (bar is hidden but elements exist in DOM)
 document.getElementById('p-turbo').addEventListener('pointerdown', function(e){
   e.preventDefault(); turboMode = (turboMode + 1) % 3; _updateTurboBtn();
   this.style.color = turboMode ? '#ffd700' : 'rgba(212,160,23,0.45)';
@@ -6813,6 +7246,13 @@ document.getElementById('p-sound').addEventListener('pointerdown', function(e){
 });
 document.getElementById('p-info').addEventListener('pointerdown', function(e){
   e.preventDefault(); showGameInfo();
+});
+document.getElementById('p-dc').addEventListener('pointerdown', function(e){
+  e.preventDefault(); if (spinning || inFS) return;
+  doubleChanceEnabled = !doubleChanceEnabled;
+  localStorage.setItem('doubleChance', doubleChanceEnabled);
+  updateUI();
+  playSound('button_click');
 });
 // Auto spin — HTML picker for portrait
 document.getElementById('p-auto').addEventListener('pointerdown', function(e){
@@ -6907,14 +7347,32 @@ function _syncPortraitBar() {
   var pb = document.getElementById('p-bal');
   if (!pb) return;
   pb.textContent = formatMoney(balance);
-  document.getElementById('p-bet').textContent = formatMoney(bet);
+  var pBet = document.getElementById('p-bet');
+  pBet.textContent = formatMoney(getEffectiveBet());
+  pBet.style.color = doubleChanceEnabled ? '#44dd88' : '#d4c8a0';
+  var pBetLbl = document.getElementById('p-bet-lbl');
+  if (pBetLbl) pBetLbl.textContent = doubleChanceEnabled ? socLabel('BET') + ' (2\u00D7)' : socLabel('BET');
+  var pDc = document.getElementById('p-dc');
+  if (pDc) { pDc.style.color = doubleChanceEnabled ? '#44dd88' : 'rgba(212,160,23,0.45)'; pDc.style.boxShadow = doubleChanceEnabled ? '0 0 0 1.5px #44dd88' : '0 0 0 1px rgba(212,160,23,0.3)'; }
   var pw = document.getElementById('p-win');
   pw.textContent = formatMoney(roundWin > 0 ? roundWin : 0);
   pw.style.color = roundWin > 0 ? '#ffd700' : '#a08030';
   // Hide buy bonus during free spins
-  document.getElementById('p-buy').style.display = inFS ? 'none' : '';
+  var pBuyEl = document.getElementById('p-buy');
+  if (pBuyEl) pBuyEl.style.display = inFS ? 'none' : '';
+  var pfBuyEl = document.getElementById('pf-buy');
+  if (pfBuyEl) pfBuyEl.style.display = inFS ? 'none' : '';
+  var pfDcEl = document.getElementById('pf-dc');
+  if (pfDcEl) pfDcEl.style.display = inFS ? 'none' : '';
+  // Sync portrait FS counter — only show in portrait mode while spins remain
+  var pfFS = document.getElementById('portrait-fs');
+  var _syncW = window.innerWidth, _syncH = window.innerHeight;
+  if (pfFS) pfFS.style.display = (inFS && fsLeft > 0 && _syncH > _syncW * 1.2) ? 'block' : 'none';
+  var pfFsNum = document.getElementById('pf-fs-num');
+  if (pfFsNum && inFS) pfFsNum.textContent = fsLeft;
   // Sync turbo state
   document.getElementById('p-turbo').style.color = turboMode ? '#ffd700' : 'rgba(212,160,23,0.45)';
+  if (typeof _syncPortraitTurbo === 'function') _syncPortraitTurbo();
   // Sync auto spin state
   if (typeof _syncPortraitAuto === 'function') _syncPortraitAuto();
 }
@@ -6924,58 +7382,112 @@ const _origResizeFn = resize;
 const _enhancedResize = () => {
   const w = window.innerWidth, h = window.innerHeight;
   const isPortrait = h > w * 1.2;
-  // Reset styles
+  // Reset canvas inline styles
   app.view.style.position = '';
   app.view.style.left = '';
   app.view.style.top = '';
+
   if (isPortrait) {
-    // Scale canvas so grid fills ~85% of viewport width
-    const targetGridW = w * 0.85;
-    const s = targetGridW / GRID_W;
-    const cw = Math.round(BASE_W * s);
-    const ch = Math.round(BASE_H * s);
-    app.view.style.width  = cw + 'px';
+    // ── PORTRAIT LAYOUT ──────────────────────────────────────
+    // Zone heights
+    var logoH = Math.round(w * 0.11);
+    var bottomBarH = 70;
+    var featureRowH = 56;
+    var safeBottom = 12;
+
+    // Scale canvas so grid fills ~84% of phone width
+    var s = (w * 0.84) / GRID_W;
+    var cw = Math.round(BASE_W * s);
+    var ch = Math.round(BASE_H * s);
+    // Clamp canvas height so everything fits
+    var maxCanvasH = h - logoH - bottomBarH - featureRowH - safeBottom - 8;
+    if (ch > maxCanvasH) { s = s * (maxCanvasH / ch); cw = Math.round(BASE_W * s); ch = Math.round(BASE_H * s); }
+    app.view.style.width = cw + 'px';
     app.view.style.height = ch + 'px';
     app.view.style.position = 'absolute';
-    const gridCenterCSS = (GRID_X + GRID_W / 2) * s;
+    // Center grid horizontally
+    var gridCenterCSS = (GRID_X + GRID_W / 2) * s;
     app.view.style.left = Math.round(w / 2 - gridCenterCSS) + 'px';
-    // Logo — bigger and slightly lower
-    const logoH = Math.round(w * 0.14);
-    _portraitLogo.style.display = 'block';
-    _portraitLogo.style.width = Math.round(w * 0.48) + 'px';
-    _portraitLogo.style.top = '14px';
-    // Position canvas below logo
-    const barH = _portraitBar.offsetHeight || 80;
-    const spinAreaH = 90; // floating spin controls height
-    const topOffset = logoH + 14;
-    const availH = h - barH - spinAreaH - topOffset;
-    const canvasTop = Math.round(topOffset + Math.max(0, (availH - ch) / 3));
+    // Position canvas below logo (extra gap so multiplier orbs don't overlap)
+    var canvasTop = logoH + 22;
     app.view.style.top = canvasTop + 'px';
-    // Position floating spin area — closer to the grid, above bottom bar
-    const gridBottomCSS = canvasTop + ch;
-    _portraitSpinArea.style.display = 'flex';
+
+    // Logo — centered at top
+    _portraitLogo.style.display = 'block';
+    _portraitLogo.style.width = Math.round(w * 0.38) + 'px';
+    _portraitLogo.style.top = '2px';
+
+    // Hide PIXI logo (portrait HTML logo replaces it)
+    if (_pixiLogo) _pixiLogo.visible = false;
+
+    // Feature row — below canvas (Buy Bonus + DC) — respect UI lock
+    _portraitFeatures.style.display = _uiLockCount > 0 ? 'none' : 'block';
+    var featTop = canvasTop + ch + 2;
+    _portraitFeatures.style.top = featTop + 'px';
+    // Hide features during free spins
+    var pfBuy = document.getElementById('pf-buy');
+    if (pfBuy) pfBuy.style.display = inFS ? 'none' : '';
+    var pfDc = document.getElementById('pf-dc');
+    if (pfDc) pfDc.style.display = inFS ? 'none' : '';
+
+    // Bottom control bar — fixed at bottom — respect UI lock
+    _portraitSpinArea.style.display = _uiLockCount > 0 ? 'none' : 'flex';
     _portraitSpinArea.style.justifyContent = 'center';
-    _portraitSpinArea.style.bottom = (barH + 50) + 'px';
-    // Show bottom bar & sync values
-    _portraitBar.style.display = 'block';
-    _syncPortraitBar();
-    if (txtBalance) txtBalance.visible = false;
-    if (txtWin) txtWin.visible = false;
-    if (lblWin) lblWin.visible = false;
-    if (txtBet) txtBet.visible = false;
-    if (barBg) barBg.visible = false;
+    _portraitSpinArea.style.bottom = 'max(' + safeBottom + 'px, env(safe-area-inset-bottom))';
+
+    // Hide old portrait bar (not used)
+    _portraitBar.style.display = 'none';
+
+    // Keep PIXI layerUI visible — balance/win/bet text shows on canvas
+    // BUT respect _lockGameUI (e.g. Buy Bonus modal hides everything)
+    if (_uiLockCount === 0) layerUI.visible = true;
+
+    // Hide all desktop-only PIXI buttons (spin, +/−, turbo, auto, fullscreen)
+    _desktopOnlyBtns.forEach(function(b) { b.visible = false; });
+    if (_turboLabel) _turboLabel.visible = false;
+
+    // Clip canvas to frame area — include full gingerbread frame (95px border) + small margin
+    var framePad = Math.ceil(95 * s) + 5;
+    var gridLeftPx = Math.max(0, Math.floor(GRID_X * s) - framePad);
+    var gridRightPx = Math.min(cw, Math.ceil((GRID_X + GRID_W) * s) + framePad);
+    app.view.style.clipPath = 'inset(0 ' + (cw - gridRightPx) + 'px 0 ' + gridLeftPx + 'px)';
+
+    // Hide PIXI FS badge off-screen in portrait (animations fight repositioning)
+    if (txtFS && txtFS._cont) {
+      txtFS._cont.x = -9999;
+    }
+    // Show HTML FS counter between canvas and feature row
+    _portraitFS.style.display = (inFS && fsLeft > 0) ? 'block' : 'none';
+    var fsCenterY = featTop - 4;
+    _portraitFS.style.top = (fsCenterY - 20) + 'px';
+    var pfFsNum = document.getElementById('pf-fs-num');
+    if (pfFsNum) pfFsNum.textContent = fsLeft;
+
   } else {
+    // ── LANDSCAPE LAYOUT ─────────────────────────────────────
     const s = Math.min(w / BASE_W, h / BASE_H);
     app.view.style.width  = (BASE_W * s) + 'px';
     app.view.style.height = (BASE_H * s) + 'px';
+    // Hide all portrait HTML elements
     _portraitBar.style.display = 'none';
     _portraitSpinArea.style.display = 'none';
     _portraitLogo.style.display = 'none';
-    if (txtBalance) txtBalance.visible = true;
-    if (txtWin) txtWin.visible = true;
-    if (lblWin) lblWin.visible = true;
-    if (txtBet) txtBet.visible = true;
-    if (barBg) barBg.visible = true;
+    _portraitFeatures.style.display = 'none';
+    // Restore PIXI (respect _lockGameUI — modal may be open)
+    if (_uiLockCount === 0) layerUI.visible = true;
+    if (_pixiLogo) _pixiLogo.visible = true;
+    app.view.style.clipPath = '';
+    // Restore desktop-only PIXI buttons
+    _desktopOnlyBtns.forEach(function(b) { b.visible = true; });
+    if (_turboLabel) _turboLabel.visible = true;
+    // Restore PIXI FS counter to desktop position
+    if (txtFS && txtFS._cont) {
+      txtFS._cont.x = Math.max(240 / 2 + 15, GRID_X / 2);
+      _fsBadgeBaseY = 260;
+      txtFS._cont.y = 260;
+      txtFS._cont.scale.set(1);
+    }
+    _portraitFS.style.display = 'none';
   }
   portraitWarning.visible = false;
 };
