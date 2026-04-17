@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@700&display=swap" rel="stylesheet">
 <style>
+  /* Self-hosted fonts — no external dependencies */
+  @font-face { font-family:'Cherry Bomb One'; font-style:normal; font-weight:400; font-display:swap; src:url(assets/cherrybomb.woff2) format('woff2'); }
+  @font-face { font-family:'Fredoka'; font-style:normal; font-weight:700; font-display:swap; src:url(assets/fredoka.woff) format('woff'); }
   /* Force font preload so PixiJS can use them immediately */
   .font-preload { position:absolute; left:-9999px; font-size:1px; }
   .font-preload-1 { font-family:'Cherry Bomb One', cursive; }
@@ -392,7 +394,7 @@ const RGS = {
       if (IS_REPLAY) { console.warn('[REPLAY] RGS auth failed, falling back to local'); const _cbd = CURRENCY_BET_DEFAULTS[CURRENCY] || CURRENCY_BET_DEFAULTS['USD']; return { balance:1000, minBet:_cbd.min, maxBet:_cbd.max, stepBet:_cbd.step, currency:CURRENCY, lang:'en' }; }
       throw new Error('Auth failed');
     }
-    const bal = (d.balance && d.balance.amount != null) ? fromRGS(d.balance.amount) : 1000;
+    const bal = (d.balance && d.balance.amount != null) ? fromRGS(d.balance.amount) : 0;
     const cur = (d.balance && d.balance.currency) ? d.balance.currency : 'USD';
     const cfg = d.config || {};
     const jur = cfg.jurisdiction || {};
@@ -1260,7 +1262,7 @@ const rndSym = () => weightedRandom(WEIGHTS);
 // ─────────────────────────────────────────────────────────────
 //  GAME STATE
 // ─────────────────────────────────────────────────────────────
-let balance   = 1000;
+let balance   = 0;
 let bet       = 1.00;
 // Double Chance to Win — increases bet 1.5x, doubles scatter probability
 let doubleChanceEnabled = localStorage.getItem('doubleChance') === 'true';
@@ -1361,7 +1363,7 @@ app.stage.addChild(layerBG, layerCell, layerReel, layerWild, paylineLayer, layer
   gridGlow.beginFill(0x5a0000, 0.35);
   gridGlow.drawEllipse(BASE_W / 2, GRID_Y + GRID_H / 2, GRID_W * 0.70, GRID_H * 0.60);
   gridGlow.endFill();
-  if (!_isMobile) gridGlow.filters = [new PIXI.filters.BlurFilter(70)];
+  if (!_isMobile) gridGlow.filters = [new PIXI.BlurFilter(70)];
   layerBG.addChild(gridGlow);
 
   // (accent lines removed — premium frame handles all edge decoration)
@@ -1509,7 +1511,7 @@ for (let r = 0; r < REELS; r++) {
   rc.mask = mask;
 
   // Blur filter — only attached during spin, removed when stopped (filter on container degrades quality even at 0)
-  const blur = new PIXI.filters.BlurFilter();
+  const blur = new PIXI.BlurFilter();
   blur.blurX   = 0; blur.blurY = 0;
   blur.quality = 4;   // explicit quality — default varies by device
   rc.filters = null;  // no filter at rest = full native texture quality
@@ -1858,7 +1860,7 @@ let _turboLabel = null;
   // ── LEFT: BALANCE ──
   const BAL_X = GRID_X + GRID_W * 0.15;
   lbl('BALANCE', BAL_X, BAR_Y + 16);
-  txtBalance = bigVal(formatMoney(1000), BAL_X, BAR_Y + 38, 0xffffff, 24);
+  txtBalance = bigVal('---', BAL_X, BAR_Y + 38, 0xffffff, 24);
 
   // ── CENTER: WIN ──
   const WIN_X = GRID_X + GRID_W * 0.5;
@@ -1882,11 +1884,11 @@ let _turboLabel = null;
   fsGlow.beginFill(0xffd700, 0.12);
   fsGlow.drawCircle(0, 0, FSW * 0.55);
   fsGlow.endFill();
-  if (!_isMobile) { fsGlow.filters = [new PIXI.filters.BlurFilter(18)]; }
+  if (!_isMobile) { fsGlow.filters = [new PIXI.BlurFilter(18)]; }
   fsBadgeCont.addChildAt(fsGlow, 0);
 
   // "FREE SPINS LEFT" label above number
-  const fsLabel = new PIXI.Text('FREE SPINS LEFT', {
+  const fsLabel = new PIXI.Text(socLabel('FREE SPINS LEFT'), {
     fontFamily: 'Cherry Bomb One, Fredoka, Georgia', fontSize: 16,
     fill: 0xfff8e0, letterSpacing: 2,
     stroke: 0x3a1800, strokeThickness: 3,
@@ -2017,14 +2019,14 @@ let _turboLabel = null;
 
   // − left of spin
   makeBtn('−', SPIN_X - 75, BAR_MID + 10, () => {
-    if (spinning || inFS) return;  // block during spin/FS
+    if (spinning || inFS || autoSpins !== 0) return;  // block during spin/FS/autoplay
     const b = betLevels;
     const i = b.indexOf(bet); if (i > 0) { bet = b[i - 1]; updateUI(); }
   });
 
   // + right of spin
   makeBtn('+', SPIN_X + 75, BAR_MID + 10, () => {
-    if (spinning || inFS) return;  // block during spin/FS
+    if (spinning || inFS || autoSpins !== 0) return;  // block during spin/FS/autoplay
     const b = betLevels;
     const i = b.indexOf(bet); if (i < b.length - 1) { bet = b[i + 1]; updateUI(); }
   });
@@ -2047,12 +2049,7 @@ let _turboLabel = null;
   _desktopOnlyBtns.push(_autoBtn.c);
   _updateAutoBtn(); // set initial dimmed state
 
-  // ── FULLSCREEN button ──
-  var _fsBtn = _makeMiniBtn('⛶', SPIN_X + 140, BAR_Y + 18, () => {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
-    else document.exitFullscreen().catch(()=>{});
-  });
-  _desktopOnlyBtns.push(_fsBtn.c);
+  // Fullscreen button removed per platform requirements
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2116,7 +2113,22 @@ const BONUS_FS_SUPER    = 10;
   bbSprite.width = btnW; bbSprite.height = btnH;
   buyBtn.addChild(bbSprite);
 
-  // Text hidden — baked into sprite
+  // Social mode: overlay replacement text over baked "BUY BONUS" on sprite
+  if (socialCasino) {
+    const coverBg = new PIXI.Graphics();
+    coverBg.beginFill(0x1a0033, 0.85);
+    coverBg.drawRoundedRect(-btnW / 2 + 4, -btnH / 2 + 4, btnW - 8, btnH - 8, 12);
+    coverBg.endFill();
+    buyBtn.addChild(coverBg);
+    const coverTxt = new PIXI.Text(socLabel('BUY BONUS'), {
+      fontFamily: 'Cherry Bomb One, Fredoka, Arial', fontSize: 18, fontWeight: 'bold',
+      fill: [0xffd700, 0xffffff, 0xffd700], fillGradientStops: [0, 0.5, 1],
+      stroke: 0x2a0800, strokeThickness: 3, align: 'center',
+    });
+    coverTxt.anchor.set(0.5);
+    buyBtn.addChild(coverTxt);
+  }
+  // Hidden PIXI text (not used visually)
   _buyBtnTxt = new PIXI.Text(socLabel('BUY BONUS'), {
     fontFamily: 'Cherry Bomb One, Fredoka, Arial', fontSize: 20,
     fill: 0xffffff, align: 'center',
@@ -2153,7 +2165,7 @@ const BONUS_FS_SUPER    = 10;
     buyBtn.scale.set(0.95);
     bbSprite.tint = 0xddbbcc;
     playSound('button_click');
-    if (!spinning && !inFS) showBuyBonusModal();
+    if (!spinning && !inFS && autoSpins === 0) showBuyBonusModal();
   });
   buyBtn.on('pointerup', () => {
     buyBtn._pressed = false;
@@ -2201,7 +2213,7 @@ const BONUS_FS_SUPER    = 10;
   dcCard.addChild(dcBetVal);
 
   // Feature title — wrapped
-  const dcTitle = new PIXI.Text('DOUBLE\nCHANCE\nTO WIN', {
+  const dcTitle = new PIXI.Text(socLabel('DOUBLE\nCHANCE\nTO WIN'), {
     fontFamily: 'Cherry Bomb One, Fredoka, Georgia', fontSize: 18, fontWeight: 'bold',
     fill: 0xffffff, align: 'center', lineHeight: 22,
     stroke: 0x3a1500, strokeThickness: 3,
@@ -2264,7 +2276,7 @@ const BONUS_FS_SUPER    = 10;
     toggleLabel.x = on ? -toggleW / 4 : toggleW / 4;
 
     // Status
-    dcStatus.text = on ? '2x SCATTER CHANCE' : 'TAP TO ENABLE';
+    dcStatus.text = on ? socLabel('2x SCATTER CHANCE') : 'TAP TO ENABLE';
     dcStatus.style.fill = on ? 0x44dd88 : 0x888888;
 
     // Card tint when disabled during spin/FS
@@ -2278,7 +2290,7 @@ const BONUS_FS_SUPER    = 10;
 
   // Toggle on click
   dcCard.on('pointerdown', () => {
-    if (spinning || inFS) return;
+    if (spinning || inFS || autoSpins !== 0) return;
     playSound('button_click');
     doubleChanceEnabled = !doubleChanceEnabled;
     localStorage.setItem('doubleChance', doubleChanceEnabled);
@@ -2361,7 +2373,7 @@ function showBuyBonusModal() {
   modal.addChild(plate);
 
   // ── Title text — code-rendered to avoid AI typos ──
-  const titleTxt = new PIXI.Text('CHOOSE YOUR BONUS', {
+  const titleTxt = new PIXI.Text(socLabel('CHOOSE YOUR BONUS'), {
     fontFamily: 'Cherry Bomb One, Fredoka, Georgia', fontSize: 38, fontWeight: 'bold',
     fill: [0xffd700, 0xff8866, 0xffd700], fillGradientStops: [0, 0.5, 1],
     stroke: 0x3a1500, strokeThickness: 5, letterSpacing: 4,
@@ -2433,6 +2445,23 @@ function showBuyBonusModal() {
         showToast('INSUFFICIENT BALANCE');
       }
     });
+
+    // Social mode: overlay replacement text on top of baked card text
+    if (socialCasino) {
+      const coverBg = new PIXI.Graphics();
+      coverBg.beginFill(0x000000, 0.75);
+      coverBg.drawRoundedRect(CW / 2 - 95, CH * 0.12, 190, 60, 8);
+      coverBg.endFill();
+      cont.addChild(coverBg);
+      const coverTxt = new PIXI.Text(socLabel(cardAsset === 'bonus_card_freespins' ? 'BUY FREE SPINS' : 'BUY SUPER FREE SPINS'), {
+        fontFamily: 'Cherry Bomb One, Fredoka, Georgia', fontSize: 16, fontWeight: 'bold',
+        fill: [0xffd700, 0xffffff, 0xffd700], fillGradientStops: [0, 0.5, 1],
+        stroke: 0x2a0800, strokeThickness: 3, align: 'center', wordWrap: true, wordWrapWidth: 170,
+      });
+      coverTxt.anchor.set(0.5);
+      coverTxt.x = CW / 2; coverTxt.y = CH * 0.15 + 30;
+      cont.addChild(coverTxt);
+    }
 
     modal.addChild(cont);
     return { card: cont, priceTxt, updatePrice };
@@ -3119,38 +3148,62 @@ app.ticker.add((dt) => {
     }
 
     // ── Trigger deceleration ──────────────────────────────
-    if (!rs.stopping && now >= rs.stopTime) rs.stopping = true;
+    if (!rs.stopping && now >= rs.stopTime) { rs.stopping = true; rs._targetFeedIdx = 0; }
 
-    // ── Exponential decay deceleration (frame-rate independent via Math.pow) ──
+    // ── Deceleration — two-phase landing ──
     if (rs.stopping) {
-      rs.velocity *= Math.pow(0.78, dt);
-      if (rs.velocity < 5) rs.velocity = 0;
+      if (!turboMode && rs._targetFeedIdx < SPRITE_COUNT) {
+        // Landing phase: slower decay + velocity floor so target symbols scroll into view
+        rs.velocity *= Math.pow(0.92, dt);
+        rs.velocity = Math.max(rs.velocity, 26);
+      } else {
+        // Quick settle after all targets placed (or turbo mode: instant)
+        rs.velocity *= Math.pow(turboMode ? 0.78 : 0.72, dt);
+        if (rs.velocity < 5) rs.velocity = 0;
+      }
     }
 
     // ── Scroll sprites down (scaled by deltaTime) ──────────
     const sprites = reelSprites[r];
     for (const sp of sprites) sp.y += rs.velocity * dt;
 
-    // ── Blur: high velocity = full blur; near-stop = remove early (skip on mobile) ──
+    // ── Blur: high velocity = full blur; clear during landing so symbols are visible ──
     if (!_isMobile) {
-      const blurVal = rs.velocity * 0.5;
-      if (blurVal > 2) {
-        reelBlur[r].blurY = Math.min(blurVal, 18);
-        if (!rc.filters) rc.filters = reelBlurArr[r];
-      } else {
+      if (rs.stopping && !turboMode && rs._targetFeedIdx > 0) {
+        // Landing: clear blur so target symbols are visible scrolling in
         rc.filters = null;
+      } else {
+        const blurVal = rs.velocity * 0.5;
+        if (blurVal > 2) {
+          reelBlur[r].blurY = Math.min(blurVal, 18);
+          if (!rc.filters) rc.filters = reelBlurArr[r];
+        } else {
+          rc.filters = null;
+        }
       }
     }
 
-    // ── Recycle sprites — only during active (non-stopping) spin ──
-    if (!rs.stopping) {
+    // ── Recycle sprites — feed target symbols during landing ──
+    if (!rs.stopping || (!turboMode && rs._targetFeedIdx < SPRITE_COUNT)) {
       let topY = Infinity;
       for (const s of sprites) { if (s.y < topY) topY = s.y; }
       for (const sp of sprites) {
         if (sp.y >= ROWS * CELL) {
           sp.y = topY - CELL;
           topY = sp.y;
-          sp.texture = T(weightedRandom(WEIGHTS));
+          if (rs.stopping && rs._targetFeedIdx < SPRITE_COUNT) {
+            // Landing: feed target symbols in order (padding, target[0..ROWS-1], padding)
+            const ti = rs._targetFeedIdx;
+            const target = rs.targetSyms;
+            if (ti >= 1 && ti <= ROWS && target) {
+              sp.texture = T(target[ti - 1]);
+            } else {
+              sp.texture = T(weightedRandom(WEIGHTS));
+            }
+            rs._targetFeedIdx++;
+          } else {
+            sp.texture = T(weightedRandom(WEIGHTS));
+          }
           sp.width = SYM_SIZE; sp.height = SYM_SIZE;
           sp.rotation = 0;
           sp.tint = 0xffffff;
@@ -3451,8 +3504,7 @@ function startSpin() {
       const origBoard = _simSpins[_simSpinIdx].board;
       const wildCounts = lastBoard.map((col, r) => col.filter(c => c === WILD).length);
       if (wildCounts.some(c => c === ROWS)) {
-        console.error('[WILD BUG] Board already ALL WILD at spin start! spinIdx:', _simSpinIdx,
-          'board ref same as prev?', _simSpinIdx > 1 && _simSpins[_simSpinIdx].board === _simSpins[_simSpinIdx-1].board);
+        console.debug('[WILD] Board already ALL WILD at spin start, spinIdx:', _simSpinIdx);
       }
     }
   }
@@ -3788,7 +3840,7 @@ function animateScatterPop(cb) {
     mergeFlash.beginFill(0xffffff, 1);
     mergeFlash.drawCircle(centerX, centerY, SYM_SIZE * 0.8);
     mergeFlash.endFill();
-    if (!_isMobile) mergeFlash.filters = [new PIXI.filters.BlurFilter(24)];
+    if (!_isMobile) mergeFlash.filters = [new PIXI.BlurFilter(24)];
     cleanup.push(mergeFlash);
     layerFX.addChild(mergeFlash);
 
@@ -5053,7 +5105,7 @@ async function afterWilds() {
   // Update balance/bet/FS in bottom bar (NOT win — paylines show individual wins first)
   if (txtBalance) txtBalance.text = formatMoney(balance);
   if (txtBet) txtBet.text = formatMoney(bet);
-  if (txtFS) txtFS.text = inFS ? `FREE SPINS: ${fsLeft} LEFT` : '';
+  if (txtFS) txtFS.text = inFS ? socLabel(`FREE SPINS: ${fsLeft} LEFT`) : '';
   if (typeof _syncPortraitBar === 'function') _syncPortraitBar();
   if (inFS) saveGameState();
 
@@ -5333,6 +5385,7 @@ function _runMultSpinner(badge, mult, gen, done) {
         const bx = badge.x, by = badge.y;
         const sparkCount = isHigh ? 18 : isMid ? 10 : 5;
         const sparkColors = [0xffd700, 0xff69b4, 0x00ffcc, 0xffffff, 0xff4444];
+        const _sparks = [];
         for (let i = 0; i < sparkCount; i++) {
           const sp = new PIXI.Graphics();
           const sc = sparkColors[Math.floor(Math.random() * sparkColors.length)];
@@ -5346,15 +5399,21 @@ function _runMultSpinner(badge, mult, gen, done) {
           sp._vy = Math.sin(angle) * speed;
           sp._life = 0;
           layerFX.addChild(sp);
-          const pFn = (pd) => {
+          _sparks.push(sp);
+        }
+        let _sparkFn;
+        _sparkFn = (pd) => {
+          for (let i = _sparks.length - 1; i >= 0; i--) {
+            const sp = _sparks[i];
             sp._life += pd;
             sp.x += sp._vx * pd; sp.y += sp._vy * pd;
             sp.alpha = Math.max(0, 1 - sp._life / 20);
             sp.scale.set(Math.max(0.1, 1 - sp._life / 25));
-            if (sp._life > 20) { app.ticker.remove(pFn); layerFX.removeChild(sp); sp.destroy(); }
-          };
-          app.ticker.add(pFn);
-        }
+            if (sp._life > 20) { layerFX.removeChild(sp); sp.destroy(); _sparks.splice(i, 1); }
+          }
+          if (_sparks.length === 0) app.ticker.remove(_sparkFn);
+        };
+        app.ticker.add(_sparkFn);
 
         const flashAlpha = isHigh ? 0.5 : isMid ? 0.3 : 0.15;
         const flash = new PIXI.Graphics();
@@ -5730,6 +5789,9 @@ function spawnWildParticles(cx, cy) {
       const ey = Math.random() > 0.5 ? GRID_Y : GRID_Y + GRID_H;
       const ex = GRID_X + reel * CELL + Math.random() * SYM_SIZE;
 
+      const _puffs = [];
+      const _upward = ey <= GRID_Y;
+      const _upDir = _upward ? 0.15 : -0.15;
       for (let i = 0; i < 7; i++) {
         const p = new PIXI.Graphics();
         const isGold = Math.random() > 0.35;
@@ -5739,23 +5801,25 @@ function spawnWildParticles(cx, cy) {
         p.endFill();
         p.x = ex + (Math.random() - 0.5) * 30;
         p.y = ey;
-        const upward = ey <= GRID_Y;
-        const baseVY = upward ? -(2 + Math.random() * 3) : (2 + Math.random() * 3);
         p._vx = (Math.random() - 0.5) * 3;
-        p._vy = baseVY;
+        p._vy = _upward ? -(2 + Math.random() * 3) : (2 + Math.random() * 3);
         p._life = 0; p._max = 30 + Math.random() * 20;
         layerFX.addChild(p);
-
-        let iFn;
-        iFn = (idt) => {
-          p._life += idt;
-          if (p._life >= p._max) { layerFX.removeChild(p); p.destroy(); app.ticker.remove(iFn); return; }
-          p.x += p._vx * idt; p.y += p._vy * idt;
-          p._vy += (upward ? 0.15 : -0.15) * idt;
-          p.alpha = 1 - p._life / p._max;
-        };
-        app.ticker.add(iFn);
+        _puffs.push(p);
       }
+      let _puffFn;
+      _puffFn = (idt) => {
+        for (let i = _puffs.length - 1; i >= 0; i--) {
+          const p = _puffs[i];
+          p._life += idt;
+          if (p._life >= p._max) { layerFX.removeChild(p); p.destroy(); _puffs.splice(i, 1); continue; }
+          p.x += p._vx * idt; p.y += p._vy * idt;
+          p._vy += _upDir * idt;
+          p.alpha = 1 - p._life / p._max;
+        }
+        if (_puffs.length === 0) app.ticker.remove(_puffFn);
+      };
+      app.ticker.add(_puffFn);
     });
   });
 }
@@ -5879,6 +5943,7 @@ function _makeFSScreen(topText, scrollLines, bottomText, cb, panelType) {
     activeOverlay.destroy({ children: true });
     app.view.style.zIndex = '2';
     activeOverlay = null;
+    _unlockGameUI();
   }
 
   // No dim overlay — candy world stays fully visible
@@ -6096,6 +6161,15 @@ function showReplayIntro(data, cb) {
   c._dim = null;
   c._htmlDim = replayDimEl;
 
+  // Dark semi-opaque background panel for readability
+  const bgPanel = new PIXI.Graphics();
+  bgPanel.beginFill(0x0a0a2e, 0.88);
+  bgPanel.drawRoundedRect(BASE_W / 2 - 280, BASE_H / 2 - 270, 560, 530, 20);
+  bgPanel.endFill();
+  bgPanel.lineStyle(2, 0x22aa44, 0.6);
+  bgPanel.drawRoundedRect(BASE_W / 2 - 280, BASE_H / 2 - 270, 560, 530, 20);
+  c.addChild(bgPanel);
+
   // REPLAY badge
   const badge = new PIXI.Graphics();
   badge.beginFill(0x22aa44);
@@ -6135,24 +6209,41 @@ function showReplayIntro(data, cb) {
     vT.x = BASE_W / 2 + 100; vT.y = ly; c.addChild(vT);
   });
 
-  // "Start Replay" button
+  // "Start Replay" button — interactive immediately (no delay)
   const btn = new PIXI.Graphics();
   btn.beginFill(0x22aa44);
   btn.drawRoundedRect(-110, -26, 220, 52, 12);
   btn.endFill();
   btn.x = BASE_W / 2; btn.y = BASE_H / 2 + 210;
-  btn.interactive = true; btn.cursor = 'pointer';
+  btn.interactive = true; btn.buttonMode = true; btn.cursor = 'pointer';
   c.addChild(btn);
   const btnTxt = new PIXI.Text('START REPLAY', { fontFamily:'Arial', fontSize:20, fontWeight:'bold', fill:0xffffff, letterSpacing:2 });
   btnTxt.anchor.set(0.5); btnTxt.x = BASE_W / 2; btnTxt.y = BASE_H / 2 + 210;
   c.addChild(btnTxt);
+
+  // Click handler — attached immediately before any animation
+  const _doStart = () => {
+    app.ticker.remove(inFn);
+    app.ticker.remove(pulseFn);
+    app.stage.removeChild(c);
+    if (c._dim) { app.stage.removeChild(c._dim); c._dim.destroy(); }
+    c.destroy({ children: true });
+    document.getElementById('screenDim').style.display = 'none';
+    activeOverlay = null;
+    if (cb) cb();
+  };
+  btn.on('pointerdown', _doStart);
 
   // Pulse button
   let pt = 0;
   const pulseFn = (dt) => { pt += dt; btn.alpha = 0.8 + Math.sin(pt * 0.1) * 0.2; };
   app.ticker.add(pulseFn);
 
+  // Add to stage and animate in — container is interactive during animation
   app.stage.addChild(c);
+  c.interactive = true;
+  c.interactiveChildren = true;
+  c.hitArea = new PIXI.Rectangle(0, 0, BASE_W, BASE_H);
   c.alpha = 0; c.scale.set(0.92);
   let ticks = 0;
   const inFn = (dt) => {
@@ -6162,31 +6253,112 @@ function showReplayIntro(data, cb) {
     if (ticks >= 15) app.ticker.remove(inFn);
   };
   app.ticker.add(inFn);
-
-  c.interactive = true;
-  c.hitArea = new PIXI.Rectangle(0, 0, BASE_W, BASE_H);
-  btn.on('pointerdown', () => {
-    app.ticker.remove(inFn);
-    app.ticker.remove(pulseFn);
-    app.stage.removeChild(c);
-    if (c._dim) { app.stage.removeChild(c._dim); c._dim.destroy(); }
-    c.destroy({ children: true });
-    document.getElementById('screenDim').style.display = 'none';
-    activeOverlay = null;
-    if (cb) cb();
-  });
 }
 
 function showReplayOutro(totalWin, cb) {
-  _makeFSScreen(
-    'REPLAY COMPLETE',
-    [
-      { text: 'TOTAL WIN',   size: 22, color: 0xffd700, yo: -38, spacing: 4 },
-      { text: totalWin > 0 ? formatMoney(totalWin) : '—', size: 66, color: 0xffffff, yo: 10 },
-    ],
-    'CLICK TO REPLAY AGAIN',
-    cb
-  );
+  // Custom replay outro with visible buttons (not _makeFSScreen tap-anywhere)
+  if (activeOverlay) {
+    if (activeOverlay._dim) { app.stage.removeChild(activeOverlay._dim); activeOverlay._dim.destroy(); }
+    if (activeOverlay._htmlDim && activeOverlay._htmlDim.parentNode) activeOverlay._htmlDim.remove();
+    app.stage.removeChild(activeOverlay);
+    activeOverlay.destroy({ children: true });
+    app.view.style.zIndex = '2';
+    activeOverlay = null;
+  }
+
+  const c = new PIXI.Container();
+  activeOverlay = c;
+  c._dim = null;
+
+  // Dark panel
+  const bg = new PIXI.Graphics();
+  bg.beginFill(0x0a0a2e, 0.88);
+  bg.drawRoundedRect(BASE_W / 2 - 260, BASE_H / 2 - 180, 520, 360, 20);
+  bg.endFill();
+  bg.lineStyle(2, 0x22aa44, 0.6);
+  bg.drawRoundedRect(BASE_W / 2 - 260, BASE_H / 2 - 180, 520, 360, 20);
+  c.addChild(bg);
+
+  // Title
+  const title = new PIXI.Text('REPLAY COMPLETE', {
+    fontFamily:"'Cherry Bomb One', 'Fredoka', sans-serif", fontSize:38, fontWeight:'bold',
+    fill:[0xfff4d0, 0xd4a017], stroke:0x1a0a00, strokeThickness:4, letterSpacing:3
+  });
+  title.anchor.set(0.5); title.x = BASE_W / 2; title.y = BASE_H / 2 - 120;
+  c.addChild(title);
+
+  // Total Win label
+  const winLabel = new PIXI.Text('TOTAL WIN', {
+    fontFamily:"'Cherry Bomb One', 'Fredoka', sans-serif", fontSize:20, fontWeight:'bold',
+    fill:0xffd700, letterSpacing:3
+  });
+  winLabel.anchor.set(0.5); winLabel.x = BASE_W / 2; winLabel.y = BASE_H / 2 - 55;
+  c.addChild(winLabel);
+
+  // Win amount
+  const winAmt = new PIXI.Text(totalWin > 0 ? formatMoney(totalWin) : '\u2014', {
+    fontFamily:"'Cherry Bomb One', 'Fredoka', sans-serif", fontSize:60, fontWeight:'bold',
+    fill:[0xffffff, 0xfff4d0], stroke:0x3a1500, strokeThickness:4
+  });
+  winAmt.anchor.set(0.5); winAmt.x = BASE_W / 2; winAmt.y = BASE_H / 2 + 10;
+  c.addChild(winAmt);
+
+  // REPLAY AGAIN button
+  const replayBtn = new PIXI.Graphics();
+  replayBtn.beginFill(0x22aa44);
+  replayBtn.drawRoundedRect(-110, -24, 220, 48, 12);
+  replayBtn.endFill();
+  replayBtn.x = BASE_W / 2 - 125; replayBtn.y = BASE_H / 2 + 110;
+  replayBtn.interactive = true; replayBtn.buttonMode = true; replayBtn.cursor = 'pointer';
+  c.addChild(replayBtn);
+  const replayTxt = new PIXI.Text('REPLAY AGAIN', { fontFamily:'Arial', fontSize:18, fontWeight:'bold', fill:0xffffff, letterSpacing:2 });
+  replayTxt.anchor.set(0.5); replayTxt.x = replayBtn.x; replayTxt.y = replayBtn.y;
+  c.addChild(replayTxt);
+
+  // EXIT REPLAY button
+  const exitBtn = new PIXI.Graphics();
+  exitBtn.beginFill(0x882222);
+  exitBtn.drawRoundedRect(-90, -24, 180, 48, 12);
+  exitBtn.endFill();
+  exitBtn.x = BASE_W / 2 + 115; exitBtn.y = BASE_H / 2 + 110;
+  exitBtn.interactive = true; exitBtn.buttonMode = true; exitBtn.cursor = 'pointer';
+  c.addChild(exitBtn);
+  const exitTxt = new PIXI.Text('EXIT REPLAY', { fontFamily:'Arial', fontSize:18, fontWeight:'bold', fill:0xffffff, letterSpacing:2 });
+  exitTxt.anchor.set(0.5); exitTxt.x = exitBtn.x; exitTxt.y = exitBtn.y;
+  c.addChild(exitTxt);
+
+  // Animations
+  let pt = 0;
+  const pulseFn = (dt) => { pt += dt; replayBtn.alpha = 0.85 + Math.sin(pt * 0.1) * 0.15; };
+  app.ticker.add(pulseFn);
+
+  const _cleanup = () => {
+    app.ticker.remove(pulseFn);
+    app.stage.removeChild(c);
+    c.destroy({ children: true });
+    activeOverlay = null;
+  };
+
+  replayBtn.on('pointerdown', () => { _cleanup(); if (cb) cb(); });
+  exitBtn.on('pointerdown', () => {
+    _cleanup();
+    // Exit replay mode — reload the page to return to normal game
+    IS_REPLAY = false;
+    window.location.href = window.location.pathname + window.location.search.replace(/[&?]replayEvent=[^&]+/, '');
+  });
+
+  app.stage.addChild(c);
+  c.interactive = true;
+  c.hitArea = new PIXI.Rectangle(0, 0, BASE_W, BASE_H);
+  c.alpha = 0; c.scale.set(0.92);
+  let ticks = 0;
+  const inFn = (dt) => {
+    ticks += dt;
+    c.alpha = Math.min(ticks / 15, 1);
+    c.scale.set(0.92 + Math.min(ticks / 15, 1) * 0.08);
+    if (ticks >= 15) app.ticker.remove(inFn);
+  };
+  app.ticker.add(inFn);
 }
 
 function startReplayPlayback() {
@@ -6688,7 +6860,7 @@ function updateUI() {
   if (txtBet)     txtBet.text     = formatMoney(getEffectiveBet());
   if (txtBet && doubleChanceEnabled) txtBet.style.fill = 0x44dd88;
   else if (txtBet) txtBet.style.fill = 0xffffff;
-  if (txtFS)      txtFS.text      = inFS ? `FREE SPINS: ${fsLeft} LEFT` : '';
+  if (txtFS)      txtFS.text      = inFS ? socLabel(`FREE SPINS: ${fsLeft} LEFT`) : '';
   if (typeof _updateDCCard === 'function') _updateDCCard();
 
   if (txtWin) {
@@ -6727,7 +6899,7 @@ function _showGameInfoHTML() {
   // Dark overlay — full viewport, click to close
   const overlay = document.createElement('div');
   overlay.id = 'html-game-info';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:200;' +
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:200;overflow:hidden;' +
     'background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;' +
     'font-family:"Cherry Bomb One","Fredoka",sans-serif;color:#ddccaa;';
   overlay.addEventListener('pointerdown', function(e) {
@@ -6735,6 +6907,7 @@ function _showGameInfoHTML() {
   });
 
   var isPortrait = window.innerHeight > window.innerWidth * 1.2;
+  var _vw = window.innerWidth;
 
   // Inject styles
   var styleTag = document.createElement('style');
@@ -6757,12 +6930,12 @@ function _showGameInfoHTML() {
   // Centered panel — rich chocolate with radial warmth + gold border glow
   const panel = document.createElement('div');
   panel.className = 'info-panel';
-  panel.style.cssText = 'width:950px;max-width:90vw;max-height:85vh;overflow-y:auto;position:relative;' +
+  panel.style.cssText = 'width:950px;max-width:90vw;max-height:85vh;overflow-y:auto;overflow-x:hidden;position:relative;' +
     'background:radial-gradient(ellipse at 50% 30%,#3a2418 0%,#241510 40%,#1a0f08 75%,#120a04 100%);' +
     'border-radius:24px;border:2px solid rgba(255,215,0,0.35);' +
     'box-shadow:inset 0 0 80px rgba(255,215,0,0.06),inset 0 1px 0 rgba(255,215,0,0.15),' +
       '0 0 50px rgba(255,215,0,0.12),0 0 100px rgba(255,215,0,0.06),0 25px 80px rgba(0,0,0,0.6);' +
-    'padding:' + (isPortrait ? '30px 20px 40px' : '50px 60px 50px') + ';' +
+    'padding:' + (isPortrait ? '30px 20px 40px' : _vw < 600 ? '20px 16px 24px' : '50px 60px 50px') + ';' +
     'scrollbar-width:thin;scrollbar-color:rgba(212,160,23,0.5) rgba(0,0,0,0.3);scroll-behavior:smooth;';
 
   // Close button — gold-rimmed circle, positioned on overlay (outside scroll container)
@@ -6800,14 +6973,18 @@ function _showGameInfoHTML() {
   panelWrap.appendChild(closeBtn);
   overlay.appendChild(panelWrap);
 
-  // Responsive sizes
+  // Responsive sizes — 3 tiers: portrait, small landscape (<600px), large landscape
+  var _vw = window.innerWidth;
   var _fs = isPortrait ? {title:28, sub:17, body:13, small:11, sym:54, symLo:42, pay:11, payLo:10, ctrl:13, symW:76, symLoW:60}
+           : _vw < 600 ? {title:22, sub:14, body:11, small:10, sym:40, symLo:32, pay:10, payLo:9, ctrl:11, symW:60, symLoW:48}
                        : {title:42, sub:20, body:15, small:13, sym:66, symLo:52, pay:14, payLo:12, ctrl:15, symW:110, symLoW:90};
 
   // Helper: premium section title with diamond divider
+  var _secMargin = _vw < 600 ? '18px 0 10px' : '40px 0 20px';
+  var _secSpacing = _vw < 600 ? 2 : 5;
   function secTitle(text) {
-    return '<div style="text-align:center;margin:40px 0 20px;">' +
-      '<div style="font-family:Cherry Bomb One,Fredoka,Georgia;font-size:' + _fs.title + 'px;font-weight:bold;letter-spacing:5px;' +
+    return '<div style="text-align:center;margin:' + _secMargin + ';">' +
+      '<div style="font-family:Cherry Bomb One,Fredoka,Georgia;font-size:' + _fs.title + 'px;font-weight:bold;letter-spacing:' + _secSpacing + 'px;' +
       'background:linear-gradient(180deg,#ffe57f 0%,#ffd700 35%,#ffa500 70%,#cc8800 100%);-webkit-background-clip:text;' +
       '-webkit-text-fill-color:transparent;' +
       'filter:drop-shadow(0 3px 4px rgba(0,0,0,0.6));'  +
@@ -6850,7 +7027,7 @@ function _showGameInfoHTML() {
 
   // High pay symbols — with subtle glow behind premium ones
   var _hiGlow = {watermelon:'rgba(255,50,80,0.12)',grape:'rgba(160,50,255,0.12)',orange:'rgba(255,160,0,0.12)',cherry:'rgba(255,40,60,0.12)',plum:'rgba(180,80,200,0.12)',lemon:'rgba(255,230,0,0.12)'};
-  html += '<div style="display:flex;justify-content:center;gap:' + (isPortrait?'12':'22') + 'px;flex-wrap:wrap;margin:18px 0;">';
+  html += '<div style="display:flex;justify-content:center;gap:' + (isPortrait ? '12' : _vw < 600 ? '8' : '22') + 'px;flex-wrap:wrap;margin:18px 0;">';
   ['watermelon','grape','orange','cherry','plum','lemon'].forEach(function(sym) {
     var pays = PAYTABLE[sym];
     var glow = _hiGlow[sym] || 'transparent';
@@ -6868,7 +7045,7 @@ function _showGameInfoHTML() {
   html += '</div>';
 
   // Low pay symbols
-  html += '<div style="display:flex;justify-content:center;gap:' + (isPortrait?'10':'20') + 'px;flex-wrap:wrap;margin:16px 0;">';
+  html += '<div style="display:flex;justify-content:center;gap:' + (isPortrait ? '10' : _vw < 600 ? '6' : '20') + 'px;flex-wrap:wrap;margin:16px 0;">';
   ['A','K','Q','J','10'].forEach(function(sym) {
     var pays = PAYTABLE[sym];
     html += '<div class="info-sym-card" style="text-align:center;padding:14px 8px;width:' + _fs.symLoW + 'px;">' +
@@ -6938,8 +7115,8 @@ function _showGameInfoHTML() {
   // Draw paylines as small inline SVG diagrams
   var plColors = ['#f44','#4f4','#48f','#fa0','#f4f','#4ff','#ff4','#f84','#8f4','#44f',
                   '#f48','#4f8','#84f','#f88','#8fa','#a8f','#fc4','#4cf','#c4f','#f4c'];
-  var _plSz = isPortrait ? 52 : 72;
-  html += '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:' + (isPortrait?'6':'10') + 'px;">';
+  var _plSz = isPortrait ? 52 : _vw < 600 ? 44 : 72;
+  html += '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:' + (isPortrait ? '6' : _vw < 600 ? '4' : '10') + 'px;">';
   PAYLINES.forEach(function(line, idx) {
     var svg = '<svg width="' + _plSz + '" height="' + _plSz + '" viewBox="0 0 52 52" style="display:block;">';
     // Background
@@ -6968,7 +7145,8 @@ function _showGameInfoHTML() {
 
   html += divider();
 
-  // ── BUY BONUS ──
+  // ── BUY BONUS (hidden in social mode) ──
+  if (!socialCasino) {
   html += secTitle(socLabel('BUY BONUS'));
   html += '<div class="info-feature-card" style="' + cardStyle() + 'padding:18px 22px;margin:14px auto;max-width:640px;">';
   html += '<div style="font-family:Cherry Bomb One,Fredoka,Georgia;font-size:' + _fs.sub + 'px;font-weight:bold;letter-spacing:1px;' +
@@ -6988,6 +7166,23 @@ function _showGameInfoHTML() {
 
   html += '<div style="text-align:center;font-size:11px;color:#8a7a5a;font-style:italic;margin:12px 12px;">' +
     socLabel('Feature Buy is not available in all jurisdictions. The bet level used for the bonus is the current bet at time of purchase.') + '</div>';
+  }
+
+  html += divider();
+
+  // ── DOUBLE CHANCE ──
+  html += secTitle('DOUBLE CHANCE');
+  html += '<div class="info-feature-card" style="' + cardStyle() + 'padding:18px 22px;margin:14px auto;max-width:640px;">';
+  html += '<div style="font-family:Cherry Bomb One,Fredoka,Georgia;font-size:' + _fs.sub + 'px;font-weight:bold;letter-spacing:1px;' +
+    'background:linear-gradient(180deg,#ffe57f,#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;' +
+    'filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));">' + socLabel('DOUBLE CHANCE TO WIN') + '</div>';
+  html += '<div style="font-size:' + (_fs.body - 1) + 'px;color:#c8b898;margin:8px 0;line-height:' + (_fs.body + 6) + 'px;">' +
+    socLabel('Activate Double Chance to double the probability of landing Scatter symbols. When enabled, the bet is increased by 1.5\u00D7.') + '</div>';
+  html += '<div style="font-size:' + (_fs.body - 1) + 'px;color:#c8b898;margin:4px 0;line-height:' + (_fs.body + 6) + 'px;">' +
+    '\u2022 Scatter probability: 2\u00D7 normal rate<br>' +
+    '\u2022 ' + socLabel('Bet') + ' multiplier: 1.5\u00D7<br>' +
+    '\u2022 Cannot be combined with ' + socLabel('Buy Bonus') + '</div>';
+  html += '</div>';
 
   html += divider();
 
@@ -7033,10 +7228,12 @@ function _showGameInfoHTML() {
     ['SPIN', socLabel('Start a spin (or press SPACE)')],
     ['+/\u2212', socLabel('Increase or decrease bet size')],
     ['TURBO', socLabel('Toggle fast spin mode')],
-    [socLabel('BUY BONUS'), socLabel('Purchase free spins directly')],
-    ['INFO', socLabel('Open this game information')],
-    ['ESC', socLabel('Close modals')],
   ];
+  ctrls.push([socLabel('BUY BONUS'), socLabel('Purchase free spins directly')]);
+  ctrls.push(
+    ['INFO', socLabel('Open this game information')],
+    ['ESC', socLabel('Close modals')]
+  );
   html += '<div style="' + cardStyle() + 'padding:20px 22px;margin:14px auto;max-width:640px;">';
   ctrls.forEach(function(c, i) {
     var borderTop = i > 0 ? 'border-top:1px solid rgba(255,215,0,0.06);padding-top:10px;' : '';
@@ -7118,7 +7315,7 @@ var _portraitFeatures = document.createElement('div');
 _portraitFeatures.id = 'portrait-features';
 _portraitFeatures.innerHTML =
   '<div class="pf-row">' +
-    '<button class="pf-btn" id="pf-buy">\uD83C\uDF6D BUY BONUS</button>' +
+    '<button class="pf-btn" id="pf-buy">\uD83C\uDF6D ' + socLabel('BUY BONUS') + '</button>' +
     '<button class="pf-btn pf-dc' + (doubleChanceEnabled ? ' dc-on' : '') + '" id="pf-dc">' +
       '<span>2\u00D7 CHANCE</span>' +
       '<div class="pf-toggle"><div class="pf-toggle-dot"></div></div>' +
@@ -7135,7 +7332,7 @@ _portraitFS.innerHTML =
   'border:2px solid #ffd700;border-radius:12px;padding:4px 18px 6px;' +
   'box-shadow:0 0 12px rgba(255,200,50,0.3),inset 0 1px 1px rgba(255,220,180,0.15),0 2px 6px rgba(0,0,0,0.5);">' +
   '<div style="font:bold 8px/1 Cherry Bomb One,Fredoka,sans-serif;color:#fff8e0;letter-spacing:2px;margin-bottom:2px;' +
-  'text-shadow:0 1px 3px rgba(0,0,0,0.8);">FREE SPINS LEFT</div>' +
+  'text-shadow:0 1px 3px rgba(0,0,0,0.8);">' + socLabel('FREE SPINS LEFT') + '</div>' +
   '<div id="pf-fs-num" style="font:bold 22px/1 Cherry Bomb One,Fredoka,sans-serif;color:#ffd700;' +
   'text-shadow:0 0 10px rgba(255,200,50,0.6),2px 2px 0 #8b4513;">10</div></div>';
 document.body.appendChild(_portraitFS);
@@ -7167,11 +7364,11 @@ document.getElementById('p-spin').addEventListener('pointerdown', function(e){
   startSpin();
 });
 document.getElementById('p-minus').addEventListener('pointerdown', function(e){
-  e.preventDefault(); if (spinning || inFS) return;
+  e.preventDefault(); if (spinning || inFS || autoSpins !== 0) return;
   var i = betLevels.indexOf(bet); if (i > 0) { bet = betLevels[i - 1]; updateUI(); }
 });
 document.getElementById('p-plus').addEventListener('pointerdown', function(e){
-  e.preventDefault(); if (spinning || inFS) return;
+  e.preventDefault(); if (spinning || inFS || autoSpins !== 0) return;
   var i = betLevels.indexOf(bet); if (i < betLevels.length - 1) { bet = betLevels[i + 1]; updateUI(); }
 });
 // Wire new spin-area utility buttons
@@ -7223,10 +7420,10 @@ document.getElementById('p-auto2').addEventListener('pointerdown', function(e){
 });
 // Wire portrait feature row buttons
 document.getElementById('pf-buy').addEventListener('pointerdown', function(e){
-  e.preventDefault(); if (!spinning && !inFS) showBuyBonusModal();
+  e.preventDefault(); if (!spinning && !inFS && autoSpins === 0) showBuyBonusModal();
 });
 document.getElementById('pf-dc').addEventListener('pointerdown', function(e){
-  e.preventDefault(); if (spinning || inFS) return;
+  e.preventDefault(); if (spinning || inFS || autoSpins !== 0) return;
   doubleChanceEnabled = !doubleChanceEnabled;
   localStorage.setItem('doubleChance', doubleChanceEnabled);
   updateUI();
@@ -7248,7 +7445,7 @@ document.getElementById('p-info').addEventListener('pointerdown', function(e){
   e.preventDefault(); showGameInfo();
 });
 document.getElementById('p-dc').addEventListener('pointerdown', function(e){
-  e.preventDefault(); if (spinning || inFS) return;
+  e.preventDefault(); if (spinning || inFS || autoSpins !== 0) return;
   doubleChanceEnabled = !doubleChanceEnabled;
   localStorage.setItem('doubleChance', doubleChanceEnabled);
   updateUI();
@@ -7353,7 +7550,9 @@ function _syncPortraitBar() {
   var pBetLbl = document.getElementById('p-bet-lbl');
   if (pBetLbl) pBetLbl.textContent = doubleChanceEnabled ? socLabel('BET') + ' (2\u00D7)' : socLabel('BET');
   var pDc = document.getElementById('p-dc');
-  if (pDc) { pDc.style.color = doubleChanceEnabled ? '#44dd88' : 'rgba(212,160,23,0.45)'; pDc.style.boxShadow = doubleChanceEnabled ? '0 0 0 1.5px #44dd88' : '0 0 0 1px rgba(212,160,23,0.3)'; }
+  if (pDc) {
+    pDc.style.color = doubleChanceEnabled ? '#44dd88' : 'rgba(212,160,23,0.45)'; pDc.style.boxShadow = doubleChanceEnabled ? '0 0 0 1.5px #44dd88' : '0 0 0 1px rgba(212,160,23,0.3)';
+  }
   var pw = document.getElementById('p-win');
   pw.textContent = formatMoney(roundWin > 0 ? roundWin : 0);
   pw.style.color = roundWin > 0 ? '#ffd700' : '#a08030';
@@ -7521,17 +7720,25 @@ if (_rgsBlocked) {
       bet = auth.defaultBetLevel && betLevels.includes(auth.defaultBetLevel) ? auth.defaultBetLevel : cbd.default;
       if (!betLevels.includes(bet)) bet = betLevels.reduce((p,c) => Math.abs(c-bet) < Math.abs(p-bet) ? c : p);
     }
+    // Restore persisted bet from localStorage (survives base game refresh mid-spin)
+    try {
+      var _savedBet = parseFloat(localStorage.getItem('sugarstack_bet'));
+      if (_savedBet && !isNaN(_savedBet) && betLevels.includes(_savedBet)) bet = _savedBet;
+    } catch(e) {}
     // Handle active round on refresh: use the round's bet, not default
     if (auth.round && auth.round.active) {
       RGS._roundActive = true;
       if (auth.round.bet != null) bet = fromRGS(auth.round.bet);
     }
-    if (auth.disabledFullscreen) { disabledFullscreen = true; if (_fsBtn) _fsBtn.c.visible = false; }
+    if (auth.disabledFullscreen) { disabledFullscreen = true; }
     if (auth.disabledTurbo) { disabledTurbo = true; turboMode = false; if (_turboBtn) _turboBtn.c.visible = false; }
     if (auth.socialCasino) {
       socialCasino = true;
       if (_betLabel) _betLabel.text = socLabel('BET');
       if (_buyBtnTxt) _buyBtnTxt.text = socLabel('BUY BONUS');
+      // Update portrait HTML labels for social mode
+      var _pBetLbl = document.getElementById('p-bet-lbl');
+      if (_pBetLbl) _pBetLbl.textContent = socLabel('BET');
     }
   } catch(e) {
     console.error('RGS auth failed:', e);
@@ -7547,6 +7754,9 @@ if (_rgsBlocked) {
     }
   }
 }
+// Update all UI with real balance/bet/currency from auth
+updateUI();
+_syncPortraitBar();
 
 // Load book files for all modes
 try {
@@ -7572,6 +7782,7 @@ if (_savedState && _savedState.inFS && _savedState.simSpins && _savedState.simSp
   fsLeft = _savedState.fsLeft;
   roundWin = _savedState.roundWin || 0;
   wildReels = _savedState.wildReels || [];
+  _hideSideUI();
   _simSpins = _savedState.simSpins;
   _fsPreGenerated = _savedState.simSpins && _savedState.simSpins.length > 1;
   _simSpinIdx = _savedState.simSpinIdx || 0;
@@ -7622,16 +7833,22 @@ if (_savedState && _savedState.inFS && _savedState.simSpins && _savedState.simSp
   if (_savedState.bet) bet = _savedState.bet;
   clearGameState();
   if (RGS._roundActive) {
+    RGS._roundHasWin = true; // Force API call to collect any pending payout
     RGS.endRound().then(() => {
       updateUI();
+      _syncPortraitBar();
+      showToast('ROUND RECOVERED');
     }).catch(e => console.warn('[RECOVERY] endRound failed:', e));
   }
 } else {
   clearGameState();
-  // If RGS has an active round but no saved FS state, close it too (Issue #3)
+  // If RGS has an active round but no saved FS state, close it too
   if (RGS._roundActive && !inFS) {
+    RGS._roundHasWin = true; // Force API call to collect any pending payout
     RGS.endRound().then(() => {
       updateUI();
+      _syncPortraitBar();
+      showToast('ROUND RECOVERED');
     }).catch(e => console.warn('[RECOVERY] endRound failed:', e));
   }
 }
@@ -7669,7 +7886,7 @@ window.addEventListener('keydown', e => {
     return;
   }
   if (e.code !== 'Space') return;
-  if (buyBonusOverlay) { closeBuyBonus(); return; }
+  if (buyBonusOverlay) return; // block space while bonus menu is open
   if (activeOverlay) {
     activeOverlay.emit('pointerdown');
     return;
