@@ -102,7 +102,7 @@ class GameExecutables(GameCalculations):
                 existing_reels.add(ew["reel"])
 
     def pre_place_expanding_wild(self) -> None:
-        """Pre-place one expanding wild on a random reel for super_buy_bonus."""
+        """Pre-place one expanding wild on a random reel for super_bonus."""
         available = list(range(self.config.num_reels))
         chosen_reel = random.choice(available)
         self.expand_wild_reel(chosen_reel)

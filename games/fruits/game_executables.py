@@ -68,11 +68,16 @@ class GameExecutables(GameCalculations):
         """
         Find all wilds on the board, expand them to fill their reel,
         assign a multiplier per reel, and emit events.
+        Skips reels already restored by restore_sticky_wilds() to avoid
+        re-rolling their multiplier (which would mismatch the updateStickyWilds event).
         """
         wild_reels = self.find_wild_reels()
         expanded = []
+        existing_sticky = {sw["reel"] for sw in self.sticky_wild_reels} if hasattr(self, 'sticky_wild_reels') else set()
 
         for reel_index in wild_reels:
+            if reel_index in existing_sticky:
+                continue
             self.expand_wild_reel(reel_index)
             mult = self.assign_wild_reel_multiplier(reel_index)
             expanded.append({"reel": reel_index, "mult": mult})
@@ -130,7 +135,7 @@ class GameExecutables(GameCalculations):
                 existing_reels.add(ew["reel"])
 
     def pre_place_expanding_wild(self) -> None:
-        """Pre-place one expanding wild on a random reel for super_buy_bonus."""
+        """Pre-place one expanding wild on a random reel for super_bonus."""
         available = list(range(self.config.num_reels))
         chosen_reel = random.choice(available)
         self.expand_wild_reel(chosen_reel)

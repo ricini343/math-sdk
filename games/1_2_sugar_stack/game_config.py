@@ -146,8 +146,8 @@ class GameConfig(Config):
             2: 150, 3: 60, 5: 30, 10: 15, 20: 8, 50: 3, 100: 2
         }
 
-        # ── Bonus buy conditions ───────────────────────────────────
-        buy_bonus_cond = {
+        # ── Bonus mode conditions ──────────────────────────────────
+        bonus_cond = {
             **freegame_cond,
             "reel_weights": {
                 self.basegame_type: {"BR0": 1},
@@ -155,7 +155,7 @@ class GameConfig(Config):
             },
             "scatter_triggers": {3: 1},
         }
-        super_buy_cond = {
+        super_bonus_cond = {
             **freegame_cond,
             "reel_weights": {
                 self.basegame_type: {"BR0": 1},
@@ -167,7 +167,7 @@ class GameConfig(Config):
 
         # ── Bet Modes ─────────────────────────────────────────────
         maxwins = {
-            "base": 10000, "buy_bonus": 10000, "super_buy_bonus": 10000,
+            "base": 10000, "bonus": 10000, "super_bonus": 10000,
         }
 
         self.bet_modes = [
@@ -187,29 +187,29 @@ class GameConfig(Config):
                 ],
             ),
             BetMode(
-                name="buy_bonus",
+                name="bonus",
                 cost=150.0,
                 rtp=self.rtp,
-                max_win=maxwins["buy_bonus"],
+                max_win=maxwins["bonus"],
                 auto_close_disabled=False,
                 is_feature=False,
                 is_buybonus=True,
                 distributions=[
-                    Distribution(criteria="wincap",   quota=0.001, win_criteria=maxwins["buy_bonus"], conditions=wincap_cond),
-                    Distribution(criteria="freegame", quota=0.999, conditions=buy_bonus_cond),
+                    Distribution(criteria="wincap",   quota=0.001, win_criteria=maxwins["bonus"], conditions=wincap_cond),
+                    Distribution(criteria="freegame", quota=0.999, conditions=bonus_cond),
                 ],
             ),
             BetMode(
-                name="super_buy_bonus",
+                name="super_bonus",
                 cost=300.0,
                 rtp=self.rtp,
-                max_win=maxwins["super_buy_bonus"],
+                max_win=maxwins["super_bonus"],
                 auto_close_disabled=False,
                 is_feature=False,
                 is_buybonus=True,
                 distributions=[
-                    Distribution(criteria="wincap",   quota=0.001, win_criteria=maxwins["super_buy_bonus"], conditions=wincap_cond),
-                    Distribution(criteria="freegame", quota=0.999, conditions=super_buy_cond),
+                    Distribution(criteria="wincap",   quota=0.001, win_criteria=maxwins["super_bonus"], conditions=wincap_cond),
+                    Distribution(criteria="freegame", quota=0.999, conditions=super_bonus_cond),
                 ],
             ),
         ]

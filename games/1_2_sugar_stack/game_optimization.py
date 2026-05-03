@@ -45,10 +45,10 @@ class OptimizationSetup:
                     score_type="rtp",
                 ).return_dict(),
             },
-            "buy_bonus": {
+            "bonus": {
                 "conditions": {
                     "wincap": ConstructConditions(
-                        rtp=0.01, av_win=wincaps["buy_bonus"], search_conditions=wincaps["buy_bonus"]
+                        rtp=0.01, av_win=wincaps["bonus"], search_conditions=wincaps["bonus"]
                     ).return_dict(),
                     "freegame": ConstructConditions(rtp=0.95, hr="x").return_dict(),
                 },
@@ -69,10 +69,10 @@ class OptimizationSetup:
                     score_type="rtp",
                 ).return_dict(),
             },
-            "super_buy_bonus": {
+            "super_bonus": {
                 "conditions": {
                     "wincap": ConstructConditions(
-                        rtp=0.01, av_win=wincaps["super_buy_bonus"], search_conditions=wincaps["super_buy_bonus"]
+                        rtp=0.01, av_win=wincaps["super_bonus"], search_conditions=wincaps["super_bonus"]
                     ).return_dict(),
                     "freegame": ConstructConditions(rtp=0.95, hr="x").return_dict(),
                 },
